@@ -4,31 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>학원 업무 관리 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .debug {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .links {
+            background: #d1ecf1;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .links a {
+            display: block;
+            margin: 5px 0;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">학원 업무 관리 시스템</h1>
-        <p>한글 테스트: 안녕하세요!</p>
-        <p>URL 파라미터 테스트</p>
-        <div id="teacher-info"></div>
+    <div class="container">
+        <h1>학원 업무 관리 시스템</h1>
+        
+        <div class="info">
+            <p><strong>한글 테스트:</strong> 안녕하세요! 한글이 정상적으로 표시됩니다.</p>
+        </div>
+        
+        <div class="links">
+            <p><strong>테스트 링크들:</strong></p>
+            <a href="?teacher=test">영어 테스트 (test)</a>
+            <a href="?teacher=장현명">한글 테스트 (장현명)</a>
+            <a href="?teacher=%EC%9E%A5%ED%98%84%EB%AA%85">URL 인코딩 테스트 (장현명)</a>
+            <a href="?teacher=%EC%9D%B4%EC%9A%B1">URL 인코딩 테스트 (이욱)</a>
+        </div>
+        
+        <div class="info">
+            <p><strong>현재 URL:</strong></p>
+            <div id="current-url">로딩 중...</div>
+        </div>
+        
+        <div class="info">
+            <p><strong>URL 파라미터 결과:</strong></p>
+            <div id="teacher-info">로딩 중...</div>
+        </div>
+        
+        <div class="debug">
+            <p><strong>디버그 정보:</strong></p>
+            <div id="debug-info">로딩 중...</div>
+        </div>
     </div>
 
     <script>
-        // URL 파라미터 테스트
-        function getUrlParameter(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
-        }
-
-        const teacherParam = getUrlParameter('teacher');
-        if (teacherParam) {
-            document.getElementById('teacher-info').innerHTML = 
-                `<p>선생님: ${decodeURIComponent(teacherParam)}</p>`;
-        } else {
-            document.getElementById('teacher-info').innerHTML = 
-                `<p>선생님 파라미터가 없습니다.</p>`;
-        }
+        // DOM이 로드된 후 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // 현재 URL 표시
+                document.getElementById('current-url').textContent = window.location.href;
+                
+                // 디버그 정보
+                var debugInfo = '';
+                debugInfo += '전체 URL: ' + window.location.href + '\n';
+                debugInfo += 'Search 부분: ' + window.location.search + '\n';
+                debugInfo += 'Hash 부분: ' + window.location.hash + '\n';
+                
+                // URL 파라미터 처리
+                var search = window.location.search;
+                var teacher = null;
+                
+                if (search) {
+                    // 간단한 파라미터 파싱
+                    var params = search.substring(1).split('&');
+                    for (var i = 0; i < params.length; i++) {
+                        var pair = params[i].split('=');
+                        if (pair[0] === 'teacher' && pair[1]) {
+                            teacher = pair[1];
+                            break;
+                        }
+                    }
+                }
+                
+                debugInfo += 'teacher 파라미터 (원본): ' + (teacher || '없음') + '\n';
+                
+                // 디코딩 시도
+                var decodedTeacher = '';
+                if (teacher) {
+                    try {
+                        decodedTeacher = decodeURIComponent(teacher);
+                        debugInfo += 'teacher 파라미터 (디코딩): ' + decodedTeacher + '\n';
+                    } catch (e) {
+                        decodedTeacher = teacher;
+                        debugInfo += 'teacher 파라미터 (디코딩 실패): ' + teacher + '\n';
+                        debugInfo += '디코딩 오류: ' + e.message + '\n';
+                    }
+                }
+                
+                // 결과 표시
+                document.getElementById('debug-info').textContent = debugInfo;
+                
+                if (teacher) {
+                    document.getElementById('teacher-info').innerHTML = 
+                        '<strong>선생님:</strong> ' + (decodedTeacher || teacher);
+                } else {
+                    document.getElementById('teacher-info').textContent = 
+                        '선생님 파라미터가 없습니다. 위의 테스트 링크를 클릭해보세요.';
+                }
+                
+            } catch (error) {
+                document.getElementById('teacher-info').textContent = '오류 발생: ' + error.message;
+                document.getElementById('debug-info').textContent = '스크립트 오류: ' + error.message;
+            }
+        });
     </script>
 </body>
 </html> 
