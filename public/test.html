@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학원 업무 관리 시스템 - 테스트 버전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            font-size: 14px;
+        }
+        
+        /* 반응형 텍스트 크기 */
+        @media (max-width: 1200px) {
+            body { font-size: 13px; }
+            h1 { font-size: 1.5rem !important; }
+            h2 { font-size: 1.25rem !important; }
+        }
+        @media (max-width: 768px) {
+            body { font-size: 12px; }
+            h1 { font-size: 1.25rem !important; }
+            h2 { font-size: 1.125rem !important; }
+        }
+        @media (max-width: 480px) {
+            body { font-size: 11px; }
+            h1 { font-size: 1.125rem !important; }
+            h2 { font-size: 1rem !important; }
+        }
+
+        /* 계정 정보 우상단 */
+        .account-info {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.875rem;
+        }
+
+        /* 타임라인 */
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            min-height: 80px;
+        }
+
+        .timeline-day {
+            background: white;
+            padding: 0.25rem;
+            text-align: center;
+            font-size: 0.75rem;
+            position: relative;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .timeline-month {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .timeline-today {
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        /* 업무 보드 */
+        .board-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(4, minmax(200px, 1fr)) 200px;
+            grid-template-rows: auto 1fr 1fr;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            background: white;
+        }
+
+        .grid-cell {
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            min-height: 150px;
+        }
+
+        .header-cell {
+            background-color: #f8fafc;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-bottom: 2px solid #cbd5e1;
+        }
+
+        .done-header {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .row-label {
+            background-color: #f8fafc;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-right: 2px solid #cbd5e1;
+        }
+
+        .task-column {
+            background-color: white;
+            padding: 0.75rem;
+        }
+
+        .row-span-2 {
+            grid-row: span 2;
+        }
+
+        /* 업무 아이템 */
+        .task-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: grab;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* 반응형 */
+        @media (max-width: 1200px) {
+            .board-grid {
+                grid-template-columns: 100px repeat(4, minmax(150px, 1fr)) 150px;
+            }
+            .grid-cell {
+                padding: 0.75rem;
+                min-height: 120px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .board-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            .grid-cell {
+                border: none;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .row-span-2 {
+                grid-row: auto;
+            }
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* 입력 필드 */
+        .input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        /* 축하 모달 */
+        .celebration-modal {
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            animation: bounceIn 0.6s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 테스트 배너 */
+        .test-banner {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-weight: 600;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+        }
+    </style>
+</head>
+<body class="pt-16">
+    <!-- 테스트 배너 -->
+    <div class="test-banner">
+        🧪 테스트 버전 - 로그인 없이 모든 기능을 체험해보세요!
+    </div>
+
+    <!-- 계정 정보 (우상단) -->
+    <div class="account-info">
+        <span class="font-semibold">테스트 학원</span>
+        <span class="text-sm text-gray-500">테스트 모드</span>
+    </div>
+
+    <!-- 메인 화면 -->
+    <div class="container mx-auto px-4 pt-4">
+        <!-- 헤더 -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold mb-2">테스트 학원 업무 관리 시스템</h1>
+            <p id="welcome-message" class="text-gray-600">효율적인 업무 관리로 더 나은 교육을 만들어가세요!</p>
+        </div>
+
+        <!-- 선생님 선택 -->
+        <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+            <div class="flex items-center gap-4 flex-wrap">
+                <label class="font-semibold">선생님 선택:</label>
+                <select id="teacher-select" class="input flex-1 max-w-xs">
+                    <option value="">선생님을 선택하세요</option>
+                    <option value="teacher1">김선생님</option>
+                    <option value="teacher2">이선생님</option>
+                    <option value="teacher3">박선생님</option>
+                </select>
+                <button id="add-teacher-btn" class="btn btn-secondary">+ 선생님 추가</button>
+                <button id="delete-teacher-btn" class="btn btn-danger" style="display: none;">선생님 삭제</button>
+            </div>
+        </div>
+
+        <!-- 선택된 선생님 정보 -->
+        <div id="teacher-info" style="display: none;" class="text-center mb-6">
+            <h2 id="teacher-title" class="text-xl font-semibold mb-2"></h2>
+            <p id="teacher-message" class="text-gray-600"></p>
+        </div>
+
+        <!-- 타임라인 -->
+        <div id="timeline-container" style="display: none;" class="bg-white p-4 rounded-lg shadow-sm mb-6">
+            <h3 class="font-semibold mb-3">업무 타임라인</h3>
+            <div id="timeline" class="timeline"></div>
+        </div>
+
+        <!-- 업무 보드 -->
+        <div id="board-container" style="display: none;" class="mb-6">
+            <div class="board-grid">
+                <!-- 헤더 -->
+                <div class="grid-cell header-cell"></div>
+                <div class="grid-cell header-cell">Mandatory<br>(필수)</div>
+                <div class="grid-cell header-cell">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
+                <div class="grid-cell header-cell">Deep-Infra Building<br>(구조 효율화)</div>
+                <div class="grid-cell header-cell">Innovation<br>(혁신)</div>
+                <div class="grid-cell header-cell done-header">완료 (Done)</div>
+
+                <!-- 진행 중 행 -->
+                <div class="grid-cell row-label">Ongoing<br>(진행중)</div>
+                <div id="mandatory-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
+                <div id="low-hanging-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
+                <div id="deep-infra-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
+                <div id="innovation-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                <div id="done-column" class="task-column grid-cell row-span-2" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
+
+                <!-- 있으면 좋은 것 행 -->
+                <div class="grid-cell row-label">Nice to have<br>(하고 싶은 것)</div>
+                <div id="mandatory-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice-to-have')"></div>
+                <div id="low-hanging-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice-to-have')"></div>
+                <div id="deep-infra-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice-to-have')"></div>
+                <div id="innovation-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice-to-have')"></div>
+            </div>
+        </div>
+
+        <!-- 업무 추가 -->
+        <div id="add-task-section" style="display: none;" class="bg-white p-4 rounded-lg shadow-sm">
+            <h3 class="font-semibold mb-4">새로운 업무 추가</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <input type="text" id="task-content" class="input" placeholder="업무 내용">
+                <input type="number" id="estimated-time" class="input" placeholder="예상 소요시간 (시간)">
+                <input type="date" id="due-date" class="input">
+                <select id="task-category" class="input">
+                    <option value="mandatory">필수</option>
+                    <option value="low-hanging">로우 행잉</option>
+                    <option value="deep-infra">심층 인프라</option>
+                    <option value="innovation">혁신</option>
+                </select>
+                <select id="task-priority" class="input">
+                    <option value="ongoing">진행 중</option>
+                    <option value="nice-to-have">있으면 좋은 것</option>
+                </select>
+                <select id="task-type" class="input">
+                    <option value="deadline">마감일 있음</option>
+                    <option value="daily">매일 꾸준히</option>
+                </select>
+            </div>
+            <button id="add-task-btn" class="btn btn-primary">업무 추가</button>
+        </div>
+    </div>
+
+    <!-- 모달들 -->
+    
+    <!-- 선생님 추가 모달 -->
+    <div id="teacher-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4">새 선생님 추가</h3>
+            <input type="text" id="new-teacher-name" class="input mb-4" placeholder="선생님 이름">
+            <div class="flex gap-2 justify-end">
+                <button id="cancel-teacher-btn" class="btn btn-secondary">취소</button>
+                <button id="save-teacher-btn" class="btn btn-primary">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업무 완료 모달 -->
+    <div id="completion-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4">업무 완료</h3>
+            <p class="mb-4">실제 소요된 시간을 입력해주세요.</p>
+            <input type="number" id="actual-time" class="input mb-4" placeholder="실제 소요시간 (시간)">
+            <div class="flex gap-2 justify-end">
+                <button id="cancel-completion-btn" class="btn btn-secondary">취소</button>
+                <button id="confirm-completion-btn" class="btn btn-primary">완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4">업무 삭제</h3>
+            <p class="mb-4">정말 이 업무를 삭제하시겠습니까?</p>
+            <div class="flex gap-2 justify-end">
+                <button id="cancel-delete-btn" class="btn btn-secondary">취소</button>
+                <button id="confirm-delete-btn" class="btn btn-danger">삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 축하 모달 -->
+    <div id="celebration-modal" class="modal">
+        <div class="celebration-modal">
+            <div id="celebration-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // 테스트용 데이터 저장소
+        let testData = {
+            teachers: [
+                { id: 'teacher1', name: '김선생님' },
+                { id: 'teacher2', name: '이선생님' },
+                { id: 'teacher3', name: '박선생님' }
+            ],
+            tasks: []
+        };
+
+        // 로컬 스토리지에서 데이터 로드
+        const savedData = localStorage.getItem('test-academy-data');
+        if (savedData) {
+            testData = JSON.parse(savedData);
+        }
+
+        let currentTeacher = null;
+        let taskToDelete = null;
+        let taskToComplete = null;
+
+        // DOM 요소들
+        const teacherSelect = document.getElementById('teacher-select');
+        const addTeacherBtn = document.getElementById('add-teacher-btn');
+        const deleteTeacherBtn = document.getElementById('delete-teacher-btn');
+        const teacherInfo = document.getElementById('teacher-info');
+        const teacherTitle = document.getElementById('teacher-title');
+        const teacherMessage = document.getElementById('teacher-message');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const timelineContainer = document.getElementById('timeline-container');
+        const timeline = document.getElementById('timeline');
+        const boardContainer = document.getElementById('board-container');
+        const addTaskSection = document.getElementById('add-task-section');
+
+        // 모달 요소들
+        const teacherModal = document.getElementById('teacher-modal');
+        const newTeacherName = document.getElementById('new-teacher-name');
+        const saveTeacherBtn = document.getElementById('save-teacher-btn');
+        const cancelTeacherBtn = document.getElementById('cancel-teacher-btn');
+        
+        const completionModal = document.getElementById('completion-modal');
+        const actualTimeInput = document.getElementById('actual-time');
+        const confirmCompletionBtn = document.getElementById('confirm-completion-btn');
+        const cancelCompletionBtn = document.getElementById('cancel-completion-btn');
+        
+        const deleteModal = document.getElementById('delete-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        
+        const celebrationModal = document.getElementById('celebration-modal');
+        const celebrationMessage = document.getElementById('celebration-message');
+
+        // 업무 추가 요소들
+        const taskContentInput = document.getElementById('task-content');
+        const estimatedTimeInput = document.getElementById('estimated-time');
+        const dueDateInput = document.getElementById('due-date');
+        const taskCategorySelect = document.getElementById('task-category');
+        const taskPrioritySelect = document.getElementById('task-priority');
+        const taskTypeSelect = document.getElementById('task-type');
+        const addTaskBtn = document.getElementById('add-task-btn');
+
+        // 이벤트 리스너 등록
+        teacherSelect.addEventListener('change', selectTeacher);
+        addTeacherBtn.addEventListener('click', () => showModal(teacherModal));
+        deleteTeacherBtn.addEventListener('click', deleteSelectedTeacher);
+        saveTeacherBtn.addEventListener('click', saveNewTeacher);
+        cancelTeacherBtn.addEventListener('click', () => hideModal(teacherModal));
+        confirmCompletionBtn.addEventListener('click', confirmTaskCompletion);
+        cancelCompletionBtn.addEventListener('click', () => hideModal(completionModal));
+        confirmDeleteBtn.addEventListener('click', confirmTaskDeletion);
+        cancelDeleteBtn.addEventListener('click', () => hideModal(deleteModal));
+        addTaskBtn.addEventListener('click', addNewTask);
+
+        // 초기화
+        loadTeachers();
+
+        // 함수들
+        function saveData() {
+            localStorage.setItem('test-academy-data', JSON.stringify(testData));
+        }
+
+        function loadTeachers() {
+            teacherSelect.innerHTML = '<option value="">선생님을 선택하세요</option>';
+            testData.teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.id;
+                option.textContent = teacher.name;
+                teacherSelect.appendChild(option);
+            });
+        }
+
+        function selectTeacher() {
+            const teacherId = teacherSelect.value;
+            if (!teacherId) {
+                hideTeacherBoard();
+                deleteTeacherBtn.style.display = 'none';
+                welcomeMessage.textContent = '효율적인 업무 관리로 더 나은 교육을 만들어가세요!';
+                return;
+            }
+
+            const teacher = testData.teachers.find(t => t.id === teacherId);
+            if (teacher) {
+                currentTeacher = teacher;
+                deleteTeacherBtn.style.display = 'inline-block';
+                welcomeMessage.textContent = `오늘도 교육 시스템의 최종적 해답을 풀어가시는 ${teacher.name}! 감사합니다!`;
+                showTeacherBoard();
+                loadTeacherTasks();
+            }
+        }
+
+        function showTeacherBoard() {
+            teacherInfo.style.display = 'block';
+            timelineContainer.style.display = 'block';
+            boardContainer.style.display = 'block';
+            addTaskSection.style.display = 'block';
+            
+            teacherTitle.textContent = `${currentTeacher.name} 업무 관리 보드`;
+            teacherMessage.textContent = `교육 시스템의 최종적 해답을 오늘도 풀어가는 ${currentTeacher.name}! 감사합니다!`;
+            
+            generateTimeline();
+        }
+
+        function hideTeacherBoard() {
+            teacherInfo.style.display = 'none';
+            timelineContainer.style.display = 'none';
+            boardContainer.style.display = 'none';
+            addTaskSection.style.display = 'none';
+        }
+
+        function generateTimeline() {
+            const today = new Date();
+            const startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 14); // 2주 전
+            
+            const endDate = new Date(today);
+            endDate.setMonth(endDate.getMonth() + 1); // 다음달
+            
+            timeline.innerHTML = '';
+            
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'timeline-day';
+                
+                if (currentDate.getDate() === 1) {
+                    dayElement.className += ' timeline-month';
+                    dayElement.textContent = `${currentDate.getMonth() + 1}월`;
+                } else {
+                    if (currentDate.toDateString() === today.toDateString()) {
+                        dayElement.className += ' timeline-today';
+                    }
+                    dayElement.innerHTML = `
+                        <div>${currentDate.getDate()}</div>
+                        <div style="font-size: 0.6rem;">${['일','월','화','수','목','금','토'][currentDate.getDay()]}</div>
+                    `;
+                }
+                
+                timeline.appendChild(dayElement);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+
+        function loadTeacherTasks() {
+            if (!currentTeacher) return;
+            
+            const tasks = testData.tasks.filter(task => task.teacherId === currentTeacher.id);
+            renderTasks(tasks);
+        }
+
+        function renderTasks(tasks) {
+            // 모든 컬럼 초기화
+            const columns = [
+                'mandatory-ongoing', 'low-hanging-ongoing', 'deep-infra-ongoing', 'innovation-ongoing',
+                'mandatory-nice-to-have', 'low-hanging-nice-to-have', 'deep-infra-nice-to-have', 'innovation-nice-to-have',
+                'done-column'
+            ];
+            
+            columns.forEach(columnId => {
+                const column = document.getElementById(columnId);
+                if (column) column.innerHTML = '';
+            });
+
+            tasks.forEach(task => {
+                const taskElement = createTaskElement(task);
+                const columnId = task.status === 'done' ? 'done-column' : `${task.category}-${task.priorityGroup}`;
+                const column = document.getElementById(columnId);
+                if (column) {
+                    column.appendChild(taskElement);
+                }
+            });
+        }
+
+        function createTaskElement(task) {
+            const div = document.createElement('div');
+            div.className = 'task-item';
+            div.draggable = true;
+            div.ondragstart = (e) => drag(e, task.id);
+            
+            const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
+            if (isOverdue && task.status !== 'done') {
+                div.style.borderColor = '#ef4444';
+                div.style.backgroundColor = '#fef2f2';
+            }
+
+            div.innerHTML = `
+                <div class="font-medium mb-2">${task.content}</div>
+                ${task.estimatedTime ? `<div class="text-sm text-gray-600 mb-1">예상: ${task.estimatedTime}시간</div>` : ''}
+                ${task.actualTime ? `<div class="text-sm text-green-600 mb-1">실제: ${task.actualTime}시간</div>` : ''}
+                ${task.dueDate ? `<div class="text-sm text-gray-600 mb-2">마감: ${task.dueDate} ${task.taskType === 'daily' ? '(매일)' : ''}</div>` : ''}
+                <div class="flex justify-between items-center">
+                    <span class="text-xs px-2 py-1 rounded" style="background: #e2e8f0;">${task.status}</span>
+                    <div>
+                        ${task.status !== 'done' ? `<button class="btn btn-primary btn-small" onclick="completeTask('${task.id}')">완료</button>` : ''}
+                        <button class="btn btn-danger btn-small" onclick="deleteTask('${task.id}')">삭제</button>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function saveNewTeacher() {
+            const name = newTeacherName.value.trim();
+            if (!name) {
+                alert('선생님 이름을 입력해주세요.');
+                return;
+            }
+
+            const teacherId = 'teacher' + Date.now();
+            const newTeacher = { id: teacherId, name: name };
+            
+            testData.teachers.push(newTeacher);
+            saveData();
+            loadTeachers();
+            hideModal(teacherModal);
+            newTeacherName.value = '';
+        }
+
+        function deleteSelectedTeacher() {
+            if (!currentTeacher) {
+                alert('삭제할 선생님을 먼저 선택해주세요.');
+                return;
+            }
+
+            if (confirm(`정말 ${currentTeacher.name}을(를) 삭제하시겠습니까?\n해당 선생님의 모든 업무도 함께 삭제됩니다.`)) {
+                // 선생님 삭제
+                testData.teachers = testData.teachers.filter(t => t.id !== currentTeacher.id);
+                // 해당 선생님의 업무 삭제
+                testData.tasks = testData.tasks.filter(task => task.teacherId !== currentTeacher.id);
+                
+                saveData();
+                
+                // UI 초기화
+                currentTeacher = null;
+                teacherSelect.value = '';
+                deleteTeacherBtn.style.display = 'none';
+                welcomeMessage.textContent = '효율적인 업무 관리로 더 나은 교육을 만들어가세요!';
+                hideTeacherBoard();
+                loadTeachers();
+            }
+        }
+
+        function addNewTask() {
+            if (!currentTeacher) {
+                alert('선생님을 먼저 선택해주세요.');
+                return;
+            }
+
+            const content = taskContentInput.value.trim();
+            if (!content) {
+                alert('업무 내용을 입력해주세요.');
+                return;
+            }
+
+            const taskData = {
+                id: 'task' + Date.now(),
+                content: content,
+                estimatedTime: estimatedTimeInput.value ? parseInt(estimatedTimeInput.value) : null,
+                dueDate: dueDateInput.value || null,
+                category: taskCategorySelect.value,
+                priorityGroup: taskPrioritySelect.value,
+                taskType: taskTypeSelect.value,
+                status: 'todo',
+                teacherId: currentTeacher.id,
+                createdAt: new Date().toISOString()
+            };
+
+            testData.tasks.push(taskData);
+            saveData();
+            
+            // 입력 필드 초기화
+            taskContentInput.value = '';
+            estimatedTimeInput.value = '';
+            dueDateInput.value = '';
+            taskCategorySelect.value = 'mandatory';
+            taskPrioritySelect.value = 'ongoing';
+            taskTypeSelect.value = 'deadline';
+            
+            loadTeacherTasks();
+        }
+
+        // 드래그 앤 드롭
+        window.allowDrop = function(event) {
+            event.preventDefault();
+        }
+
+        window.drag = function(event, taskId) {
+            event.dataTransfer.setData("text", taskId);
+            event.target.classList.add('dragging');
+        }
+
+        window.drop = function(event, category, priorityGroup) {
+            event.preventDefault();
+            const taskId = event.dataTransfer.getData("text");
+            
+            const task = testData.tasks.find(t => t.id === taskId);
+            if (task) {
+                if (category === 'done') {
+                    // 완료로 이동할 때는 완료 모달 표시
+                    taskToComplete = taskId;
+                    showModal(completionModal);
+                    return;
+                } else {
+                    task.category = category;
+                    task.priorityGroup = priorityGroup;
+                    task.status = 'todo';
+                }
+                
+                saveData();
+                loadTeacherTasks();
+            }
+        }
+
+        // 모달 관련 함수
+        function showModal(modal) {
+            modal.style.display = 'flex';
+        }
+
+        function hideModal(modal) {
+            modal.style.display = 'none';
+        }
+
+        // 업무 완료
+        window.completeTask = function(taskId) {
+            taskToComplete = taskId;
+            showModal(completionModal);
+        }
+
+        function confirmTaskCompletion() {
+            if (!taskToComplete) return;
+
+            const actualTime = actualTimeInput.value ? parseInt(actualTimeInput.value) : null;
+            const task = testData.tasks.find(t => t.id === taskToComplete);
+            
+            if (task) {
+                task.status = 'done';
+                task.actualTime = actualTime;
+                task.completedAt = new Date().toISOString();
+                task.category = 'done';
+                task.priorityGroup = null;
+                
+                saveData();
+                loadTeacherTasks();
+
+                // 축하 메시지 표시 (1/3 확률)
+                if (Math.random() < 0.33) {
+                    showCelebration();
+                }
+            }
+
+            hideModal(completionModal);
+            actualTimeInput.value = '';
+            taskToComplete = null;
+        }
+
+        // 업무 삭제
+        window.deleteTask = function(taskId) {
+            taskToDelete = taskId;
+            showModal(deleteModal);
+        }
+
+        function confirmTaskDeletion() {
+            if (!taskToDelete) return;
+
+            testData.tasks = testData.tasks.filter(t => t.id !== taskToDelete);
+            saveData();
+            loadTeacherTasks();
+            
+            hideModal(deleteModal);
+            taskToDelete = null;
+        }
+
+        function showCelebration() {
+            const messages = [
+                "🎉 훌륭해요! 또 하나의 성과를 이뤄냈네요!",
+                "✨ 대단합니다! 꾸준한 노력이 빛을 발하고 있어요!",
+                "🚀 완벽해요! 이런 페이스라면 목표 달성은 시간문제네요!",
+                "🌟 최고예요! 학생들이 더욱 좋은 교육을 받을 수 있을 거예요!",
+                "💪 멋져요! 오늘도 교육 혁신을 위한 한 걸음을 내디뎠네요!"
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            celebrationMessage.textContent = randomMessage;
+            showModal(celebrationModal);
+            
+            setTimeout(() => {
+                hideModal(celebrationModal);
+            }, 3000);
+        }
+
+        // 페이지 로드 시 샘플 데이터 추가 (처음 실행 시에만)
+        if (testData.tasks.length === 0) {
+            const sampleTasks = [
+                {
+                    id: 'sample1',
+                    content: '수학 시험 문제 출제',
+                    estimatedTime: 2,
+                    dueDate: '2025-05-30',
+                    category: 'mandatory',
+                    priorityGroup: 'ongoing',
+                    taskType: 'deadline',
+                    status: 'todo',
+                    teacherId: 'teacher1',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 'sample2',
+                    content: '학부모 상담 전화',
+                    estimatedTime: 1,
+                    dueDate: '2025-05-29',
+                    category: 'low-hanging',
+                    priorityGroup: 'ongoing',
+                    taskType: 'daily',
+                    status: 'todo',
+                    teacherId: 'teacher1',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 'sample3',
+                    content: '온라인 강의 시스템 구축',
+                    estimatedTime: 8,
+                    dueDate: '2025-06-15',
+                    category: 'deep-infra',
+                    priorityGroup: 'nice-to-have',
+                    taskType: 'deadline',
+                    status: 'todo',
+                    teacherId: 'teacher2',
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            
+            testData.tasks = sampleTasks;
+            saveData();
+        }
+    </script>
+</body>
+</html> 

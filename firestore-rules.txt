@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 학원 정보 접근 규칙
+    match /academies/{academyId} {
+      allow read, write: if request.auth != null && request.auth.uid == academyId;
+    }
+    
+    // 업무 데이터 접근 규칙
+    match /tasks/{taskId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 사용자별 업무 데이터 접근 규칙
+    match /users/{userId}/tasks/{taskId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 사용자별 컬렉션 접근 규칙
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 
