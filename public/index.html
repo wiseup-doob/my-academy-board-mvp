@@ -4,147 +4,600 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>학원 업무 관리 시스템</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
         }
+        
         .container {
-            max-width: 800px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        /* 선생님 정보 고정 헤더 */
+        .teacher-info-fixed {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 200;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.875rem;
+            border: 1px solid #e2e8f0;
+            display: none;
         }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
+        
+        /* 계정 정보 우상단 */
+        .account-info {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.875rem;
         }
-        .info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 10px 0;
+        
+        /* 업무 보드 */
+        .board-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(4, minmax(180px, 1fr)) 180px;
+            grid-template-rows: auto auto auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            background: white;
+            min-width: 900px;
+            margin-bottom: 2rem;
         }
-        .debug {
-            background: #fff3cd;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
+        
+        .grid-cell {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            min-height: 120px;
         }
-        .links {
-            background: #d1ecf1;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 4px;
+        
+        .header-cell {
+            background-color: #f8fafc;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-bottom: 2px solid #cbd5e1;
+            font-size: 0.8rem;
         }
-        .links a {
-            display: block;
-            margin: 5px 0;
-            color: #0066cc;
-            text-decoration: none;
+        
+        .row-label {
+            background-color: #f1f5f9;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem;
+            writing-mode: horizontal-tb;
         }
-        .links a:hover {
-            text-decoration: underline;
+        
+        .task-column {
+            background-color: #fafafa;
+            position: relative;
+            overflow-y: auto;
+        }
+        
+        .done-header {
+            background-color: #f0f9ff !important;
+            color: #0369a1;
+        }
+        
+        #done-column {
+            background-color: #f0f9ff;
+            grid-row: 2 / 4;
+            min-height: 240px;
+        }
+        
+        /* 업무 카드 */
+        .task-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: move;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.25;
+        }
+        
+        .task-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 버튼 스타일 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+        
+        /* 로딩 상태 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.125rem;
+            color: #64748b;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 1400px) {
+            .board-grid {
+                grid-template-columns: 80px repeat(4, minmax(160px, 1fr)) 160px;
+                min-width: 800px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 선생님 정보 고정 헤더 -->
+    <div class="teacher-info-fixed" id="teacher-header">
+        <span class="teacher-label">현재 선생님:</span>
+        <span class="teacher-name" id="current-teacher-name">-</span>
+    </div>
+    
+    <!-- 계정 정보 -->
+    <div class="account-info">
+        <span id="user-info">로그인 중...</span>
+        <button id="logout-btn" class="btn btn-secondary" style="display: none;">로그아웃</button>
+    </div>
+    
     <div class="container">
-        <h1>학원 업무 관리 시스템</h1>
-        
-        <div class="info">
-            <p><strong>한글 테스트:</strong> 안녕하세요! 한글이 정상적으로 표시됩니다.</p>
+        <!-- 로그인 섹션 -->
+        <div id="login-section" class="loading">
+            <div>
+                <h1>학원 업무 관리 시스템</h1>
+                <p>로그인 중...</p>
+            </div>
         </div>
         
-        <div class="links">
-            <p><strong>테스트 링크들:</strong></p>
-            <a href="?teacher=test">영어 테스트 (test)</a>
-            <a href="?teacher=장현명">한글 테스트 (장현명)</a>
-            <a href="?teacher=%EC%9E%A5%ED%98%84%EB%AA%85">URL 인코딩 테스트 (장현명)</a>
-            <a href="?teacher=%EC%9D%B4%EC%9A%B1">URL 인코딩 테스트 (이욱)</a>
+        <!-- 선생님 선택 섹션 -->
+        <div id="teacher-selection" style="display: none;">
+            <h2>선생님을 선택하세요</h2>
+            <div id="teacher-list">
+                <!-- 동적으로 생성됨 -->
+            </div>
         </div>
         
-        <div class="info">
-            <p><strong>현재 URL:</strong></p>
-            <div id="current-url">로딩 중...</div>
-        </div>
-        
-        <div class="info">
-            <p><strong>URL 파라미터 결과:</strong></p>
-            <div id="teacher-info">로딩 중...</div>
-        </div>
-        
-        <div class="debug">
-            <p><strong>디버그 정보:</strong></p>
-            <div id="debug-info">로딩 중...</div>
+        <!-- 메인 보드 섹션 -->
+        <div id="main-board" style="display: none;">
+            <h2 id="board-title">업무 관리 보드</h2>
+            
+            <div class="board-grid">
+                <!-- 헤더 -->
+                <div class="grid-cell header-cell"></div>
+                <div class="grid-cell header-cell">Mandatory<br>(필수)</div>
+                <div class="grid-cell header-cell">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
+                <div class="grid-cell header-cell">Deep-Infra Building<br>(구조 효율화)</div>
+                <div class="grid-cell header-cell">Innovation<br>(혁신)</div>
+                <div class="grid-cell header-cell done-header">완료 (Done)</div>
+
+                <!-- 진행 중 행 -->
+                <div class="grid-cell row-label">Ongoing<br>(진행중)</div>
+                <div id="mandatory-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
+                <div id="low-hanging-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
+                <div id="deep-infra-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
+                <div id="innovation-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                <div id="done-column" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'done', 'done')"></div>
+
+                <!-- Nice to have 행 -->
+                <div class="grid-cell row-label">Nice to have<br>(있으면 좋은 것)</div>
+                <div id="mandatory-nice" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice')"></div>
+                <div id="low-hanging-nice" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice')"></div>
+                <div id="deep-infra-nice" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice')"></div>
+                <div id="innovation-nice" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice')"></div>
+            </div>
+            
+            <button id="add-task-btn" class="btn btn-primary">새 업무 추가</button>
         </div>
     </div>
 
     <script>
-        // DOM이 로드된 후 실행
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_thWlUHhzoH5XjMnmnicPrOHNbiI1aFU",
+            authDomain: "wiseup-9542e.firebaseapp.com",
+            projectId: "wiseup-9542e",
+            storageBucket: "wiseup-9542e.firebasestorage.app",
+            appId: "1:743426947321:web:2aef4565f29416f5ea0a28"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        console.log('Firebase 초기화 완료');
+        
+        let currentUser = null;
+        let currentTeacher = null;
+        let tasks = [];
+        
+        // Firebase가 로드될 때까지 대기
         document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // 현재 URL 표시
-                document.getElementById('current-url').textContent = window.location.href;
+            console.log('DOM 로드 완료');
+            
+            // Firebase가 준비될 때까지 잠시 대기
+            setTimeout(() => {
+                console.log('Firebase 준비 확인 중...');
                 
-                // 디버그 정보
-                var debugInfo = '';
-                debugInfo += '전체 URL: ' + window.location.href + '\n';
-                debugInfo += 'Search 부분: ' + window.location.search + '\n';
-                debugInfo += 'Hash 부분: ' + window.location.hash + '\n';
-                
-                // URL 파라미터 처리
-                var search = window.location.search;
-                var teacher = null;
-                
-                if (search) {
-                    // 간단한 파라미터 파싱
-                    var params = search.substring(1).split('&');
-                    for (var i = 0; i < params.length; i++) {
-                        var pair = params[i].split('=');
-                        if (pair[0] === 'teacher' && pair[1]) {
-                            teacher = pair[1];
-                            break;
-                        }
-                    }
+                if (typeof firebase === 'undefined') {
+                    document.getElementById('login-section').innerHTML = 
+                        `<div>
+                            <h1>시스템 오류</h1>
+                            <p>Firebase가 로드되지 않았습니다. 페이지를 새로고침해주세요.</p>
+                            <button onclick="window.location.reload()" class="btn btn-primary">새로고침</button>
+                        </div>`;
+                    return;
                 }
                 
-                debugInfo += 'teacher 파라미터 (원본): ' + (teacher || '없음') + '\n';
-                
-                // 디코딩 시도
-                var decodedTeacher = '';
-                if (teacher) {
-                    try {
-                        decodedTeacher = decodeURIComponent(teacher);
-                        debugInfo += 'teacher 파라미터 (디코딩): ' + decodedTeacher + '\n';
-                    } catch (e) {
-                        decodedTeacher = teacher;
-                        debugInfo += 'teacher 파라미터 (디코딩 실패): ' + teacher + '\n';
-                        debugInfo += '디코딩 오류: ' + e.message + '\n';
-                    }
+                console.log('Firebase 로드 확인됨');
+            }, 1000);
+        });
+        
+        // URL 파라미터에서 선생님 이름 가져오기
+        function getTeacherFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const teacher = urlParams.get('teacher');
+            if (teacher) {
+                try {
+                    return decodeURIComponent(teacher);
+                } catch (e) {
+                    return teacher;
                 }
+            }
+            return null;
+        }
+        
+        // URL 업데이트
+        function updateURL(teacher) {
+            if (teacher) {
+                const newUrl = window.location.pathname + '?teacher=' + encodeURIComponent(teacher);
+                window.history.pushState({}, '', newUrl);
+            }
+        }
+        
+        // 인증 상태 확인
+        auth.onAuthStateChanged(async (user) => {
+            console.log('인증 상태 변경:', user ? '로그인됨' : '로그아웃됨');
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-info').textContent = user.email || '익명 사용자';
+                document.getElementById('logout-btn').style.display = 'block';
                 
-                // 결과 표시
-                document.getElementById('debug-info').textContent = debugInfo;
-                
-                if (teacher) {
-                    document.getElementById('teacher-info').innerHTML = 
-                        '<strong>선생님:</strong> ' + (decodedTeacher || teacher);
+                // URL에서 선생님 파라미터 확인
+                const teacherFromURL = getTeacherFromURL();
+                if (teacherFromURL) {
+                    await selectTeacher(teacherFromURL);
                 } else {
-                    document.getElementById('teacher-info').textContent = 
-                        '선생님 파라미터가 없습니다. 위의 테스트 링크를 클릭해보세요.';
+                    showTeacherSelection();
                 }
+            } else {
+                console.log('사용자가 로그인되지 않음. 익명 로그인 시도...');
                 
-            } catch (error) {
-                document.getElementById('teacher-info').textContent = '오류 발생: ' + error.message;
-                document.getElementById('debug-info').textContent = '스크립트 오류: ' + error.message;
+                // 익명 로그인 시도
+                try {
+                    console.log('익명 로그인 시작...');
+                    const userCredential = await auth.signInAnonymously();
+                    console.log('익명 로그인 성공:', userCredential.user.uid);
+                } catch (error) {
+                    console.error('익명 로그인 실패:', error);
+                    
+                    // 더 자세한 에러 정보 표시
+                    let errorMessage = '로그인에 실패했습니다.';
+                    if (error.code === 'auth/network-request-failed') {
+                        errorMessage = '네트워크 연결을 확인해주세요.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
+                    } else {
+                        errorMessage = `오류: ${error.message}`;
+                    }
+                    
+                    document.getElementById('login-section').innerHTML = 
+                        `<div>
+                            <h1>로그인 실패</h1>
+                            <p>${errorMessage}</p>
+                            <button onclick="window.location.reload()" class="btn btn-primary">다시 시도</button>
+                        </div>`;
+                }
             }
         });
+        
+        // 선생님 선택 화면 표시
+        async function showTeacherSelection() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('teacher-selection').style.display = 'block';
+            document.getElementById('main-board').style.display = 'none';
+            
+            // 선생님 목록 로드
+            try {
+                const snapshot = await db.collection('academies').get();
+                const teacherList = document.getElementById('teacher-list');
+                teacherList.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    // 기본 선생님들 생성
+                    const defaultTeachers = ['장현명', '이욱', '김선생', '박선생'];
+                    for (const teacher of defaultTeachers) {
+                        await db.collection('academies').doc(teacher).set({
+                            name: teacher,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    
+                    // 다시 로드
+                    const newSnapshot = await db.collection('academies').get();
+                    newSnapshot.forEach(doc => {
+                        const teacherBtn = document.createElement('button');
+                        teacherBtn.className = 'btn btn-primary';
+                        teacherBtn.style.margin = '0.5rem';
+                        teacherBtn.textContent = doc.data().name;
+                        teacherBtn.onclick = () => selectTeacher(doc.data().name);
+                        teacherList.appendChild(teacherBtn);
+                    });
+                } else {
+                    snapshot.forEach(doc => {
+                        const teacherBtn = document.createElement('button');
+                        teacherBtn.className = 'btn btn-primary';
+                        teacherBtn.style.margin = '0.5rem';
+                        teacherBtn.textContent = doc.data().name;
+                        teacherBtn.onclick = () => selectTeacher(doc.data().name);
+                        teacherList.appendChild(teacherBtn);
+                    });
+                }
+            } catch (error) {
+                console.error('선생님 목록 로드 실패:', error);
+            }
+        }
+        
+        // 선생님 선택
+        async function selectTeacher(teacherName) {
+            currentTeacher = teacherName;
+            updateURL(teacherName);
+            
+            document.getElementById('current-teacher-name').textContent = teacherName;
+            document.getElementById('teacher-header').style.display = 'block';
+            document.getElementById('board-title').textContent = `${teacherName} 선생님 업무 관리 보드`;
+            
+            document.getElementById('teacher-selection').style.display = 'none';
+            document.getElementById('main-board').style.display = 'block';
+            
+            await loadTasks();
+        }
+        
+        // 업무 로드
+        async function loadTasks() {
+            try {
+                const snapshot = await db.collection('tasks')
+                    .where('teacher', '==', currentTeacher)
+                    .get();
+                
+                tasks = [];
+                snapshot.forEach(doc => {
+                    tasks.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderTasks();
+            } catch (error) {
+                console.error('업무 로드 실패:', error);
+            }
+        }
+        
+        // 업무 렌더링
+        function renderTasks() {
+            // 모든 컬럼 초기화
+            const columns = [
+                'mandatory-ongoing', 'low-hanging-ongoing', 'deep-infra-ongoing', 'innovation-ongoing',
+                'mandatory-nice', 'low-hanging-nice', 'deep-infra-nice', 'innovation-nice',
+                'done-column'
+            ];
+            
+            columns.forEach(columnId => {
+                document.getElementById(columnId).innerHTML = '';
+            });
+            
+            // 업무 카드 생성
+            tasks.forEach(task => {
+                const taskCard = createTaskCard(task);
+                const columnId = getColumnId(task.category, task.priority, task.status);
+                const column = document.getElementById(columnId);
+                if (column) {
+                    column.appendChild(taskCard);
+                }
+            });
+        }
+        
+        // 업무 카드 생성
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            card.draggable = true;
+            card.dataset.taskId = task.id;
+            
+            card.innerHTML = `
+                <div class="task-title">${task.title}</div>
+                <div class="task-meta">
+                    <span>예상: ${task.estimatedHours || 0}시간</span>
+                    <span>${task.dueDate || ''}</span>
+                </div>
+            `;
+            
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            
+            return card;
+        }
+        
+        // 컬럼 ID 계산
+        function getColumnId(category, priority, status) {
+            if (status === 'done') return 'done-column';
+            return `${category}-${priority}`;
+        }
+        
+        // 드래그 앤 드롭 이벤트
+        let draggedTask = null;
+        
+        function handleDragStart(e) {
+            draggedTask = e.target;
+            e.target.classList.add('dragging');
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedTask = null;
+        }
+        
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+        
+        async function drop(e, category, priority) {
+            e.preventDefault();
+            
+            if (!draggedTask) return;
+            
+            const taskId = draggedTask.dataset.taskId;
+            const task = tasks.find(t => t.id === taskId);
+            
+            if (task) {
+                // 업무 상태 업데이트
+                const updates = {
+                    category: category,
+                    priority: priority === 'done' ? task.priority : priority,
+                    status: category === 'done' ? 'done' : 'ongoing'
+                };
+                
+                try {
+                    await db.collection('tasks').doc(taskId).update(updates);
+                    
+                    // 로컬 상태 업데이트
+                    Object.assign(task, updates);
+                    
+                    // 화면 다시 렌더링
+                    renderTasks();
+                } catch (error) {
+                    console.error('업무 업데이트 실패:', error);
+                }
+            }
+        }
+        
+        // 로그아웃
+        document.getElementById('logout-btn').onclick = async () => {
+            try {
+                console.log('로그아웃 시도...');
+                await auth.signOut();
+                console.log('로그아웃 성공');
+                
+                // 상태 초기화
+                currentUser = null;
+                currentTeacher = null;
+                tasks = [];
+                
+                // URL에서 파라미터 제거
+                window.history.pushState({}, '', window.location.pathname);
+                
+                // 헤더 숨기기
+                document.getElementById('teacher-header').style.display = 'none';
+                
+                // 페이지 새로고침
+                window.location.reload();
+            } catch (error) {
+                console.error('로그아웃 실패:', error);
+                alert('로그아웃에 실패했습니다: ' + error.message);
+            }
+        };
+        
+        // 새 업무 추가 (간단한 버전)
+        document.getElementById('add-task-btn').onclick = () => {
+            const title = prompt('업무 제목을 입력하세요:');
+            if (title) {
+                addTask({
+                    title: title,
+                    category: 'mandatory',
+                    priority: 'ongoing',
+                    status: 'ongoing',
+                    teacher: currentTeacher,
+                    estimatedHours: 1,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        };
+        
+        // 업무 추가
+        async function addTask(taskData) {
+            try {
+                const docRef = await db.collection('tasks').add(taskData);
+                tasks.push({ id: docRef.id, ...taskData });
+                renderTasks();
+            } catch (error) {
+                console.error('업무 추가 실패:', error);
+            }
+        }
     </script>
 </body>
 </html> 
