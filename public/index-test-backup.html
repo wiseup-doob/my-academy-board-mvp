@@ -186,7 +186,7 @@
             z-index: 1;
         }
 
-        /* 업무 보드 - 명시적 Grid 위치 지정으로 버그 완전 제거 */
+        /* 업무 보드 */
         .board-grid {
       display: grid;
             grid-template-columns: 100px repeat(4, minmax(180px, 1fr)) 180px;
@@ -237,38 +237,14 @@
             padding: 0.5rem;
         }
 
-        /* 🔥 명시적 Grid 위치 지정 - 자동 배치 버그 완전 제거 */
-        
-        /* 1행 - 헤더들 */
-        .header-empty { grid-column: 1; grid-row: 1; }
-        .header-mandatory { grid-column: 2; grid-row: 1; }
-        .header-low-hanging { grid-column: 3; grid-row: 1; }
-        .header-deep-infra { grid-column: 4; grid-row: 1; }
-        .header-innovation { grid-column: 5; grid-row: 1; }
-        .header-done { grid-column: 6; grid-row: 1; }
+        .row-span-2 {
+            grid-row: span 2;
+        }
 
-        /* 2행 - Ongoing */
-        .label-ongoing { grid-column: 1; grid-row: 2; }
-        .cell-mandatory-ongoing { grid-column: 2; grid-row: 2; }
-        .cell-low-hanging-ongoing { grid-column: 3; grid-row: 2; }
-        .cell-deep-infra-ongoing { grid-column: 4; grid-row: 2; }
-        .cell-innovation-ongoing { grid-column: 5; grid-row: 2; }
-        .cell-done-top { grid-column: 6; grid-row: 2; }
-
-        /* 3행 - Nice to have */
-        .label-nice-to-have { grid-column: 1; grid-row: 3; }
-        .cell-mandatory-nice-to-have { grid-column: 2; grid-row: 3; }
-        .cell-low-hanging-nice-to-have { grid-column: 3; grid-row: 3; }
-        .cell-deep-infra-nice-to-have { grid-column: 4; grid-row: 3; }
-        .cell-innovation-nice-to-have { grid-column: 5; grid-row: 3; }
-        .cell-done-bottom { grid-column: 6; grid-row: 3; }
-
-        /* 완료 컬럼 통합 처리 */
-        .done-column-unified {
-            grid-column: 6;
-            grid-row: 2 / 4; /* 2-3행 차지 */
+        /* 완료 컬럼 강제 2행 차지 */
+        #done-column {
+            grid-row: 2 / 4;
             min-height: 240px;
-            background-color: #dcfce7;
         }
 
         /* 반응형 */
@@ -284,7 +260,7 @@
             .header-cell, .row-label {
                 font-size: 0.75rem;
             }
-            .done-column-unified {
+            #done-column {
                 min-height: 200px;
             }
         }
@@ -301,7 +277,7 @@
             .header-cell, .row-label {
                 font-size: 0.7rem;
             }
-            .done-column-unified {
+            #done-column {
                 min-height: 180px;
             }
         }
@@ -318,7 +294,7 @@
             .header-cell, .row-label {
                 font-size: 0.65rem;
             }
-            .done-column-unified {
+            #done-column {
                 min-height: 160px;
             }
         }
@@ -338,7 +314,7 @@
                 font-size: 0.55rem;
                 line-height: 1.1;
             }
-            .done-column-unified {
+            #done-column {
                 min-height: 120px;
             }
         }
@@ -389,15 +365,6 @@
                 font-size: 0.6rem;
                 padding: 0.3rem;
             }
-
-            /* 600px 이하에서는 명시적 Grid 위치 무시 (flex 레이아웃 사용) */
-            .header-empty, .header-mandatory, .header-low-hanging, .header-deep-infra, .header-innovation, .header-done,
-            .label-ongoing, .cell-mandatory-ongoing, .cell-low-hanging-ongoing, .cell-deep-infra-ongoing, .cell-innovation-ongoing,
-            .label-nice-to-have, .cell-mandatory-nice-to-have, .cell-low-hanging-nice-to-have, .cell-deep-infra-nice-to-have, .cell-innovation-nice-to-have,
-            .done-column-unified {
-                grid-column: unset;
-                grid-row: unset;
-            }
         }
 
         /* 컨테이너 스크롤 대응 */
@@ -413,6 +380,7 @@
             border-radius: 0.5rem;
             padding: 0.75rem;
             margin-bottom: 0.5rem;
+            cursor: grab;
             transition: all 0.2s;
             position: relative;
             font-size: 0.875rem;
@@ -424,9 +392,7 @@
 
         .task-item.dragging {
             opacity: 0.5;
-            transform: rotate(2deg) scale(1.05);
-            z-index: 1000;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transform: rotate(5deg);
         }
 
         /* 작은 화면에서 업무 아이템 크기 조정 */
@@ -609,36 +575,6 @@
             opacity: 1;
             visibility: visible;
     }
-
-        /* 드래그 오버 시 컬럼 하이라이트 */
-        .task-column.drag-over {
-            background-color: #e0f2fe;
-            border: 2px dashed #0284c7;
-            border-radius: 0.5rem;
-        }
-
-        /* 드래그 가능한 업무 아이템 커서 */
-        .task-item {
-            cursor: grab;
-        }
-
-        .task-item:active {
-            cursor: grabbing;
-        }
-
-        /* 순서 변경 시 드롭 위치 표시 */
-        .drop-indicator {
-            height: 3px;
-            background: #3b82f6;
-            border-radius: 2px;
-            margin: 0.25rem 0;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .drop-indicator.active {
-            opacity: 1;
-    }
   </style>
 </head>
 <body class="pt-20">
@@ -728,43 +664,29 @@
         <!-- 업무 보드 -->
         <div id="board-container" style="display: none;" class="mb-4 sm:mb-6 overflow-x-auto">
             <div class="board-grid">
-                <!-- 1행 - 헤더들 (명시적 위치 지정) -->
-                <div class="grid-cell header-cell header-empty"></div>
-                <div class="grid-cell header-cell header-mandatory">Mandatory<br>(필수)</div>
-                <div class="grid-cell header-cell header-low-hanging">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
-                <div class="grid-cell header-cell header-deep-infra">Deep-Infra Building<br>(구조 효율화)</div>
-                <div class="grid-cell header-cell header-innovation">Innovation<br>(혁신)</div>
-                <div class="grid-cell header-cell done-header header-done">완료 (Done)</div>
+                <!-- 헤더 -->
+                <div class="grid-cell header-cell"></div>
+                <div class="grid-cell header-cell">Mandatory<br>(필수)</div>
+                <div class="grid-cell header-cell">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
+                <div class="grid-cell header-cell">Deep-Infra Building<br>(구조 효율화)</div>
+                <div class="grid-cell header-cell">Innovation<br>(혁신)</div>
+                <div class="grid-cell header-cell done-header">완료 (Done)</div>
 
-                <!-- 2행 - 진행 중 (명시적 위치 지정) -->
-                <div class="grid-cell row-label label-ongoing">Ongoing<br>(진행중)</div>
-                <div id="mandatory-ongoing" class="task-column grid-cell cell-mandatory-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
-                <div id="low-hanging-ongoing" class="task-column grid-cell cell-low-hanging-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
-                <div id="deep-infra-ongoing" class="task-column grid-cell cell-deep-infra-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
-                <div id="innovation-ongoing" class="task-column grid-cell cell-innovation-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                <!-- 진행 중 행 -->
+                <div class="grid-cell row-label">Ongoing<br>(진행중)</div>
+                <div id="mandatory-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
+                <div id="low-hanging-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
+                <div id="deep-infra-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
+                <div id="innovation-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                <div id="done-column" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
 
-                <!-- 3행 - 있으면 좋은 것 (명시적 위치 지정) -->
-                <div class="grid-cell row-label label-nice-to-have">Nice to have<br>(하고 싶은 것)</div>
-                <div id="mandatory-nice-to-have" class="task-column grid-cell cell-mandatory-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice-to-have')"></div>
-                <div id="low-hanging-nice-to-have" class="task-column grid-cell cell-low-hanging-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice-to-have')"></div>
-                <div id="deep-infra-nice-to-have" class="task-column grid-cell cell-deep-infra-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice-to-have')"></div>
-                <div id="innovation-nice-to-have" class="task-column grid-cell cell-innovation-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice-to-have')"></div>
-
-                <!-- 완료 섹션 -->
-                <div class="done-section">
-                    <h3>✅ 완료 (Done)</h3>
-                    <div id="done-column-unified" class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
-                </div>
+                <!-- 있으면 좋은 것 행 -->
+                <div class="grid-cell row-label">Nice to have<br>(하고 싶은 것)</div>
+                <div id="mandatory-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice-to-have')"></div>
+                <div id="low-hanging-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice-to-have')"></div>
+                <div id="deep-infra-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice-to-have')"></div>
+                <div id="innovation-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice-to-have')"></div>
             </div>
-        </div>
-
-        <!-- 완료된 업무 관리 -->
-        <div id="done-task-management" style="display: none;" class="bg-white p-3 sm:p-4 rounded-lg shadow-sm mb-4 sm:mb-6">
-            <div class="flex justify-between items-center">
-                <h3 class="font-semibold text-sm sm:text-base text-gray-700">완료된 업무 관리</h3>
-                <button id="clear-done-main-btn" class="btn btn-danger text-sm">🗑️ 완료된 업무 전체 삭제</button>
-            </div>
-            <p class="text-xs sm:text-sm text-gray-500 mt-2">주간회의에서 성과 확인 후 완료된 업무들을 일괄 정리하세요.</p>
         </div>
 
         <!-- 업무 추가 -->
@@ -775,7 +697,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
                 <input type="text" id="task-content" class="input text-sm" placeholder="업무 내용">
-                <input type="number" id="estimated-time" class="input text-sm" placeholder="예상 소요시간 (시간)" step="0.1">
+                <input type="number" id="estimated-time" class="input text-sm" placeholder="예상 소요시간 (시간)">
                 <input type="date" id="due-date" class="input text-sm">
                 <select id="task-category" class="input text-sm">
       <option value="mandatory">필수</option>
@@ -815,7 +737,7 @@
         <div class="modal-content">
             <h3 class="text-lg font-semibold mb-4">업무 완료</h3>
             <p class="mb-4">실제 소요된 시간을 입력해주세요.</p>
-            <input type="number" id="actual-time" class="input mb-4" placeholder="실제 소요시간 (시간)" step="0.1">
+            <input type="number" id="actual-time" class="input mb-4" placeholder="실제 소요시간 (시간)">
             <div class="flex gap-2 justify-end">
                 <button id="cancel-completion-btn" class="btn btn-secondary">취소</button>
                 <button id="confirm-completion-btn" class="btn btn-primary">완료</button>
@@ -831,19 +753,6 @@
             <div class="flex gap-2 justify-end">
                 <button id="cancel-delete-btn" class="btn btn-secondary">취소</button>
                 <button id="confirm-delete-btn" class="btn btn-danger">삭제</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 완료된 업무 전체 삭제 확인 모달 -->
-    <div id="clear-done-modal" class="modal">
-        <div class="modal-content">
-            <h3 class="text-lg font-semibold mb-4">완료된 업무 전체 삭제</h3>
-            <p class="mb-4">정말 <span id="done-task-count" class="font-bold text-red-600"></span>개의 완료된 업무를 모두 삭제하시겠습니까?</p>
-            <p class="text-sm text-gray-600 mb-4">⚠️ 이 작업은 되돌릴 수 없습니다. 주간회의에서 확인 후 진행하세요.</p>
-            <div class="flex gap-2 justify-end">
-                <button id="cancel-clear-done-btn" class="btn btn-secondary">취소</button>
-                <button id="confirm-clear-done-btn" class="btn btn-danger">모두 삭제</button>
             </div>
         </div>
     </div>
@@ -936,67 +845,7 @@
         </div>
     </div>
 
-    <!-- 업무 수정 모달 -->
-    <div id="edit-task-modal" class="modal">
-        <div class="modal-content">
-            <h3 class="text-lg font-semibold mb-4">업무 수정</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">업무 내용</label>
-                    <input type="text" id="edit-task-content" class="input" placeholder="업무 내용">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">예상 소요시간 (시간)</label>
-                    <input type="number" id="edit-estimated-time" class="input" placeholder="예상 소요시간" step="0.1">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">마감일</label>
-                    <input type="date" id="edit-due-date" class="input">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
-                    <select id="edit-task-category" class="input">
-                        <option value="mandatory">필수</option>
-                        <option value="low-hanging">로우 행잉</option>
-                        <option value="deep-infra">심층 인프라</option>
-                        <option value="innovation">혁신</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">우선순위</label>
-                    <select id="edit-task-priority" class="input">
-                        <option value="ongoing">진행 중</option>
-                        <option value="nice-to-have">있으면 좋은 것</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">업무 유형</label>
-                    <select id="edit-task-type" class="input">
-                        <option value="deadline">마감일 있음</option>
-                        <option value="daily">매일 꾸준히</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex gap-2 justify-end mt-6">
-                <button id="cancel-edit-btn" class="btn btn-secondary">취소</button>
-                <button id="save-edit-btn" class="btn btn-primary">저장</button>
-            </div>
-        </div>
-    </div>
-
   <script type="module">
-        // 테스트 환경 감지 및 제목 변경
-        if (window.location.hostname.includes('--test-')) {
-            document.title = '학원 업무관리 시스템 테스트';
-            // 메인 제목도 변경
-            setTimeout(() => {
-                const mainTitle = document.getElementById('main-title');
-                if (mainTitle && mainTitle.textContent.includes('학원 업무 관리 시스템')) {
-                    mainTitle.textContent = mainTitle.textContent.replace('학원 업무 관리 시스템', '학원 업무 관리 시스템 (테스트)');
-                }
-            }, 1000);
-        }
-
         // Firebase SDK 임포트
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
@@ -1041,7 +890,6 @@
         let currentTeacher = null;
         let taskToDelete = null;
         let taskToComplete = null;
-        let taskToEdit = null;
 
         // DOM 요소들
         const loginScreen = document.getElementById('login-screen');
@@ -1105,23 +953,6 @@
         const taskTypeSelect = document.getElementById('task-type');
         const addTaskBtn = document.getElementById('add-task-btn');
 
-        // 완료된 업무 전체 삭제 요소들
-        const clearDoneModal = document.getElementById('clear-done-modal');
-        const doneTaskCount = document.getElementById('done-task-count');
-        const confirmClearDoneBtn = document.getElementById('confirm-clear-done-btn');
-        const cancelClearDoneBtn = document.getElementById('cancel-clear-done-btn');
-
-        // 업무 수정 요소들
-        const editTaskModal = document.getElementById('edit-task-modal');
-        const editTaskContentInput = document.getElementById('edit-task-content');
-        const editEstimatedTimeInput = document.getElementById('edit-estimated-time');
-        const editDueDateInput = document.getElementById('edit-due-date');
-        const editTaskCategorySelect = document.getElementById('edit-task-category');
-        const editTaskPrioritySelect = document.getElementById('edit-task-priority');
-        const editTaskTypeSelect = document.getElementById('edit-task-type');
-        const saveEditBtn = document.getElementById('save-edit-btn');
-        const cancelEditBtn = document.getElementById('cancel-edit-btn');
-
         // 이벤트 리스너 등록
         googleLoginBtn.addEventListener('click', signInWithGoogle);
         googleRedirectBtn.addEventListener('click', signInWithRedirect_);
@@ -1141,11 +972,6 @@
         addTaskBtn.addEventListener('click', addNewTask);
         closeGuideBtn.addEventListener('click', closeGuideModal);
         showGuideBtn.addEventListener('click', showGuideModal);
-        document.getElementById('clear-done-main-btn').addEventListener('click', showClearDoneModal);
-        confirmClearDoneBtn.addEventListener('click', confirmClearAllDoneTasks);
-        cancelClearDoneBtn.addEventListener('click', () => hideModal(clearDoneModal));
-        saveEditBtn.addEventListener('click', saveTaskEdit);
-        cancelEditBtn.addEventListener('click', () => hideModal(editTaskModal));
 
     // 인증 상태 변경 리스너
         onAuthStateChanged(auth, async (user) => {
@@ -1456,7 +1282,6 @@
             teacherInfo.style.display = 'block';
             timelineContainer.style.display = 'block';
             boardContainer.style.display = 'block';
-            document.getElementById('done-task-management').style.display = 'block';
             addTaskSection.style.display = 'block';
             
             teacherTitle.textContent = `${currentTeacher.name} 선생님 업무 관리 보드`;
@@ -1492,21 +1317,6 @@
                 // 큰 화면에서는 기본 그리드 레이아웃 유지
                 createDesktopBoardLayout();
             }
-            
-            // 레이아웃 변경 후 전체 삭제 버튼 이벤트 리스너 재등록
-            setTimeout(() => {
-                // 데스크톱 버튼
-                const clearDoneBtnDesktop = document.getElementById('clear-done-btn');
-                if (clearDoneBtnDesktop) {
-                    clearDoneBtnDesktop.addEventListener('click', showClearDoneModal);
-                }
-                
-                // 모바일 버튼
-                const clearDoneBtnMobile = document.getElementById('clear-done-btn-mobile');
-                if (clearDoneBtnMobile) {
-                    clearDoneBtnMobile.addEventListener('click', showClearDoneModal);
-                }
-            }, 100);
         }
 
         // 모바일용 보드 레이아웃 생성
@@ -1544,7 +1354,7 @@
                     <!-- 완료 섹션 -->
                     <div class="done-section">
                         <h3>✅ 완료 (Done)</h3>
-                        <div id="done-column-unified" class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
+                        <div id="done-column" class="task-column" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
                     </div>
                 </div>
             `;
@@ -1555,30 +1365,28 @@
             const boardContainer = document.getElementById('board-container');
             boardContainer.innerHTML = `
                 <div class="board-grid">
-                    <!-- 1행 - 헤더들 (명시적 위치 지정) -->
-                    <div class="grid-cell header-cell header-empty"></div>
-                    <div class="grid-cell header-cell header-mandatory">Mandatory<br>(필수)</div>
-                    <div class="grid-cell header-cell header-low-hanging">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
-                    <div class="grid-cell header-cell header-deep-infra">Deep-Infra Building<br>(구조 효율화)</div>
-                    <div class="grid-cell header-cell header-innovation">Innovation<br>(혁신)</div>
-                    <div class="grid-cell header-cell done-header header-done">완료 (Done)</div>
+                    <!-- 헤더 -->
+                    <div class="grid-cell header-cell"></div>
+                    <div class="grid-cell header-cell">Mandatory<br>(필수)</div>
+                    <div class="grid-cell header-cell">Low-hanging Fruit<br>(성과 내기 쉬운 일)</div>
+                    <div class="grid-cell header-cell">Deep-Infra Building<br>(구조 효율화)</div>
+                    <div class="grid-cell header-cell">Innovation<br>(혁신)</div>
+                    <div class="grid-cell header-cell done-header">완료 (Done)</div>
 
-                    <!-- 2행 - 진행 중 (명시적 위치 지정) -->
-                    <div class="grid-cell row-label label-ongoing">Ongoing<br>(진행중)</div>
-                    <div id="mandatory-ongoing" class="task-column grid-cell cell-mandatory-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
-                    <div id="low-hanging-ongoing" class="task-column grid-cell cell-low-hanging-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
-                    <div id="deep-infra-ongoing" class="task-column grid-cell cell-deep-infra-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
-                    <div id="innovation-ongoing" class="task-column grid-cell cell-innovation-ongoing" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                    <!-- 진행 중 행 -->
+                    <div class="grid-cell row-label">Ongoing<br>(진행중)</div>
+                    <div id="mandatory-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'ongoing')"></div>
+                    <div id="low-hanging-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'ongoing')"></div>
+                    <div id="deep-infra-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'ongoing')"></div>
+                    <div id="innovation-ongoing" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'ongoing')"></div>
+                    <div id="done-column" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
 
-                    <!-- 3행 - 있으면 좋은 것 (명시적 위치 지정) -->
-                    <div class="grid-cell row-label label-nice-to-have">Nice to have<br>(하고 싶은 것)</div>
-                    <div id="mandatory-nice-to-have" class="task-column grid-cell cell-mandatory-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice-to-have')"></div>
-                    <div id="low-hanging-nice-to-have" class="task-column grid-cell cell-low-hanging-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice-to-have')"></div>
-                    <div id="deep-infra-nice-to-have" class="task-column grid-cell cell-deep-infra-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice-to-have')"></div>
-                    <div id="innovation-nice-to-have" class="task-column grid-cell cell-innovation-nice-to-have" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice-to-have')"></div>
-
-                    <!-- 완료 컬럼 (2-3행 통합, 명시적 위치 지정) -->
-                    <div id="done-column-unified" class="task-column grid-cell done-column-unified" ondragover="allowDrop(event)" ondrop="drop(event, 'done', null)"></div>
+                    <!-- 있으면 좋은 것 행 -->
+                    <div class="grid-cell row-label">Nice to have<br>(하고 싶은 것)</div>
+                    <div id="mandatory-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'mandatory', 'nice-to-have')"></div>
+                    <div id="low-hanging-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'low-hanging', 'nice-to-have')"></div>
+                    <div id="deep-infra-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'deep-infra', 'nice-to-have')"></div>
+                    <div id="innovation-nice-to-have" class="task-column grid-cell" ondragover="allowDrop(event)" ondrop="drop(event, 'innovation', 'nice-to-have')"></div>
                 </div>
             `;
         }
@@ -1600,7 +1408,6 @@
             teacherInfo.style.display = 'none';
             timelineContainer.style.display = 'none';
             boardContainer.style.display = 'none';
-            document.getElementById('done-task-management').style.display = 'none';
             addTaskSection.style.display = 'none';
         }
 
@@ -1710,60 +1517,22 @@
             // 현재 업무를 전역 변수에 저장
             window.currentTasks = tasks;
             
-            const isSmallScreen = window.innerWidth <= 600;
-            
             // 모든 컬럼 초기화
-            let columns;
-            if (isSmallScreen) {
-                columns = [
-                    'mandatory-ongoing', 'low-hanging-ongoing', 'deep-infra-ongoing', 'innovation-ongoing',
-                    'mandatory-nice-to-have', 'low-hanging-nice-to-have', 'deep-infra-nice-to-have', 'innovation-nice-to-have',
-                    'done-column-unified'
-                ];
-            } else {
-                columns = [
-                    'mandatory-ongoing', 'low-hanging-ongoing', 'deep-infra-ongoing', 'innovation-ongoing',
-                    'mandatory-nice-to-have', 'low-hanging-nice-to-have', 'deep-infra-nice-to-have', 'innovation-nice-to-have',
-                    'done-column-unified'
-                ];
-            }
+            const columns = [
+                'mandatory-ongoing', 'low-hanging-ongoing', 'deep-infra-ongoing', 'innovation-ongoing',
+                'mandatory-nice-to-have', 'low-hanging-nice-to-have', 'deep-infra-nice-to-have', 'innovation-nice-to-have',
+                'done-column'
+            ];
             
             columns.forEach(columnId => {
                 const column = document.getElementById(columnId);
                 if (column) column.innerHTML = '';
             });
 
-            // 완료된 업무들과 진행 중 업무들 분리
-            const doneTasks = tasks.filter(task => task.status === 'done')
-                .sort((a, b) => (b.order || 0) - (a.order || 0)); // 완료된 업무는 최신 순
-            const otherTasks = tasks.filter(task => task.status !== 'done')
-                .sort((a, b) => (a.order || 0) - (b.order || 0)); // 진행 중 업무는 순서대로
-
-            // 카테고리별, 우선순위별로 그룹화하여 배치
-            const taskGroups = {};
-            otherTasks.forEach(task => {
-                const groupKey = `${task.category}-${task.priorityGroup}`;
-                if (!taskGroups[groupKey]) {
-                    taskGroups[groupKey] = [];
-                }
-                taskGroups[groupKey].push(task);
-            });
-
-            // 각 그룹의 업무들을 순서대로 배치
-            Object.keys(taskGroups).forEach(groupKey => {
-                const column = document.getElementById(groupKey);
-                if (column) {
-                    taskGroups[groupKey].forEach(task => {
-                        const taskElement = createTaskElement(task);
-                        column.appendChild(taskElement);
-                    });
-                }
-            });
-
-            // 완료된 업무들 배치 - 모든 화면에서 하나의 컬럼 사용
-            doneTasks.forEach(task => {
+            tasks.forEach(task => {
                 const taskElement = createTaskElement(task);
-                const column = document.getElementById('done-column-unified');
+                const columnId = task.status === 'done' ? 'done-column' : `${task.category}-${task.priorityGroup}`;
+                const column = document.getElementById(columnId);
                 if (column) {
                     column.appendChild(taskElement);
                 }
@@ -1787,29 +1556,15 @@
                 div.style.backgroundColor = '#fef2f2';
             }
 
-            // 완료 날짜 포맷팅 함수
-            const formatCompletedDate = (dateString) => {
-                if (!dateString) return '';
-                const date = new Date(dateString);
-                return date.toLocaleDateString('ko-KR', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    weekday: 'short'
-                });
-            };
-
             div.innerHTML = `
                 <div class="font-medium mb-2">${task.content}</div>
                 ${task.estimatedTime ? `<div class="text-sm text-gray-600 mb-1">예상: ${task.estimatedTime}시간</div>` : ''}
                 ${task.actualTime ? `<div class="text-sm text-green-600 mb-1">실제: ${task.actualTime}시간</div>` : ''}
-                ${task.dueDate ? `<div class="text-sm text-gray-600 mb-1">마감: ${task.dueDate} ${task.taskType === 'daily' ? '(매일)' : ''}</div>` : ''}
-                ${task.completedAt && task.status === 'done' ? `<div class="text-sm text-blue-600 mb-2">✅ 완료: ${formatCompletedDate(task.completedAt)}</div>` : ''}
+                ${task.dueDate ? `<div class="text-sm text-gray-600 mb-2">마감: ${task.dueDate} ${task.taskType === 'daily' ? '(매일)' : ''}</div>` : ''}
                 <div class="flex justify-between items-center">
                     <span class="text-xs px-2 py-1 rounded" style="background: #e2e8f0;">${task.status}</span>
-                    <div class="flex gap-1">
+                    <div>
                         ${task.status !== 'done' ? `<button class="btn btn-primary btn-small" onclick="completeTask('${task.id}')">완료</button>` : ''}
-                        <button class="btn btn-secondary btn-small" onclick="editTask('${task.id}')">수정</button>
                         <button class="btn btn-danger btn-small" onclick="deleteTask('${task.id}')">삭제</button>
                     </div>
                 </div>
@@ -1898,25 +1653,17 @@
             }
 
             try {
-                // 해당 컬럼의 기존 업무 개수를 확인하여 order 설정
-                const existingTasks = window.currentTasks?.filter(task => 
-                    task.category === taskCategorySelect.value && 
-                    task.priorityGroup === taskPrioritySelect.value && 
-                    task.status !== 'done'
-                ) || [];
-                
                 const taskData = {
                     content: content,
-                    estimatedTime: estimatedTimeInput.value ? parseFloat(estimatedTimeInput.value) : null,
+                    estimatedTime: estimatedTimeInput.value ? parseInt(estimatedTimeInput.value) : null,
                     dueDate: dueDateInput.value || null,
                     category: taskCategorySelect.value,
                     priorityGroup: taskPrioritySelect.value,
                     taskType: taskTypeSelect.value,
-                    status: 'todo',
+        status: 'todo',
                     academyId: currentUser.uid,
                     teacherId: currentTeacher.id,
-                    createdAt: new Date().toISOString(),
-                    order: existingTasks.length // 새 업무는 맨 마지막에 추가
+        createdAt: new Date().toISOString()
                 };
 
                 await addDoc(collection(db, 'tasks'), taskData);
@@ -1932,73 +1679,23 @@
                 console.error('업무 추가 실패:', error);
                 alert('업무 추가에 실패했습니다.');
             }
-    }
+        }
 
-    // 드래그 앤 드롭
+        // 드래그 앤 드롭
         window.allowDrop = function(event) {
             event.preventDefault();
-            
-            // 드래그 오버 시 컬럼 하이라이트
-            const taskColumn = event.target.closest('.task-column');
-            if (taskColumn) {
-                taskColumn.classList.add('drag-over');
-                
-                // 드래그 리브 시 하이라이트 제거
-                taskColumn.addEventListener('dragleave', function(e) {
-                    // 컬럼을 완전히 벗어난 경우에만 하이라이트 제거
-                    if (!taskColumn.contains(e.relatedTarget)) {
-                        taskColumn.classList.remove('drag-over');
-                    }
-                }, { once: true });
-            }
         }
 
         window.drag = function(event, taskId) {
             event.dataTransfer.setData("text", taskId);
             event.target.classList.add('dragging');
-            
-            // 드래그 시작 시 원래 위치 저장
-            const draggedElement = event.target;
-            const parentColumn = draggedElement.closest('.task-column');
-            if (parentColumn) {
-                event.dataTransfer.setData("originalColumn", parentColumn.id);
-            }
         }
 
         window.drop = async function(event, category, priorityGroup) {
             event.preventDefault();
             const taskId = event.dataTransfer.getData("text");
-            const originalColumn = event.dataTransfer.getData("originalColumn");
-            
-            // 드래그 된 요소 찾기 및 클래스 제거
-            const draggedElement = document.querySelector('.task-item.dragging');
-            if (draggedElement) {
-                draggedElement.classList.remove('dragging');
-            }
-            
-            // 타겟 컬럼 찾기 (이벤트 대상이 컬럼이 아닐 수 있으므로)
-            let targetColumn = event.target.closest('.task-column');
-            if (!targetColumn) {
-                // 컬럼을 직접 찾지 못한 경우 category와 priorityGroup으로 찾기
-      if (category === 'done') {
-                    targetColumn = document.getElementById('done-column-unified');
-      } else {
-                    targetColumn = document.getElementById(`${category}-${priorityGroup}`);
-                }
-            }
             
             try {
-                // 모든 컬럼의 드래그 오버 하이라이트 제거
-                document.querySelectorAll('.task-column.drag-over').forEach(col => {
-                    col.classList.remove('drag-over');
-                });
-                
-                // 같은 컬럼 내에서 순서 변경인지 확인
-                if (targetColumn && originalColumn === targetColumn.id && category !== 'done') {
-                    await reorderTasksInColumn(event, taskId, targetColumn);
-                    return;
-                }
-
                 const updateData = {
                     category: category,
                     priorityGroup: priorityGroup
@@ -2013,74 +1710,9 @@
                     updateData.status = 'todo';
                 }
 
-                // 새로운 컬럼으로 이동 시 해당 컬럼의 마지막 순서로 설정
-                if (targetColumn) {
-                    const tasksInNewColumn = window.currentTasks?.filter(task => 
-                        task.category === category && 
-                        task.priorityGroup === priorityGroup && 
-                        task.status !== 'done'
-                    ) || [];
-                    updateData.order = tasksInNewColumn.length;
-                }
-
                 await updateDoc(doc(db, 'tasks', taskId), updateData);
             } catch (error) {
                 console.error('업무 이동 실패:', error);
-                // 오류 발생 시에도 하이라이트 제거
-                document.querySelectorAll('.task-column.drag-over').forEach(col => {
-                    col.classList.remove('drag-over');
-                });
-            }
-        }
-
-        // 같은 컬럼 내에서 순서 변경
-        async function reorderTasksInColumn(event, draggedTaskId, targetColumn) {
-            const dropY = event.clientY;
-            const columnRect = targetColumn.getBoundingClientRect();
-            
-            // 드롭 위치 계산
-            const taskElements = Array.from(targetColumn.querySelectorAll('.task-item:not(.dragging)'));
-            let insertIndex = taskElements.length;
-            
-            for (let i = 0; i < taskElements.length; i++) {
-                const taskRect = taskElements[i].getBoundingClientRect();
-                const taskMiddle = taskRect.top + taskRect.height / 2;
-                
-                if (dropY < taskMiddle) {
-                    insertIndex = i;
-                    break;
-                }
-            }
-            
-            // 현재 컬럼의 업무들 가져오기
-            const draggedTask = window.currentTasks?.find(task => task.id === draggedTaskId);
-            if (!draggedTask) return;
-            
-            const columnTasks = window.currentTasks?.filter(task => 
-                task.category === draggedTask.category && 
-                task.priorityGroup === draggedTask.priorityGroup && 
-                task.status !== 'done'
-            ).sort((a, b) => (a.order || 0) - (b.order || 0)) || [];
-            
-            // 드래그된 업무를 배열에서 제거
-            const originalIndex = columnTasks.findIndex(task => task.id === draggedTaskId);
-            if (originalIndex === -1) return;
-            
-            columnTasks.splice(originalIndex, 1);
-            
-            // 새로운 위치에 삽입
-            columnTasks.splice(insertIndex, 0, draggedTask);
-            
-            // 모든 업무의 order 업데이트
-            const updatePromises = columnTasks.map((task, index) => 
-                updateDoc(doc(db, 'tasks', task.id), { order: index })
-            );
-            
-            try {
-                await Promise.all(updatePromises);
-                console.log('업무 순서가 업데이트되었습니다.');
-            } catch (error) {
-                console.error('순서 업데이트 실패:', error);
             }
         }
 
@@ -2102,13 +1734,9 @@
         async function confirmTaskCompletion() {
             if (!taskToComplete) return;
 
-            const actualTime = actualTimeInput.value ? parseFloat(actualTimeInput.value) : null;
+            const actualTime = actualTimeInput.value ? parseInt(actualTimeInput.value) : null;
             
             try {
-                // 완료하려는 업무 정보 가져오기
-                const taskDoc = await getDoc(doc(db, 'tasks', taskToComplete));
-                const taskData = taskDoc.data();
-                
                 await updateDoc(doc(db, 'tasks', taskToComplete), {
                     status: 'done',
                     actualTime: actualTime,
@@ -2117,19 +1745,9 @@
                     priorityGroup: null
                 });
 
-                // 마감일보다 빠르게 완료했는지 확인
-                const isEarlyCompletion = taskData.dueDate && new Date(taskData.dueDate) > new Date();
-                
-                if (isEarlyCompletion) {
-                    // 빠른 완료일 때: 50% 확률로 빠른 완성 칭찬 메시지
-                    if (Math.random() < 0.5) {
-                        showEarlyCompletionPraise();
-                    }
-                } else {
-                    // 일반 완료일 때: 33% 확률로 일반 축하 메시지
-                    if (Math.random() < 0.33) {
-                        showCelebration();
-                    }
+                // 축하 메시지 표시 (1/3 확률)
+                if (Math.random() < 0.33) {
+                    showCelebration();
                 }
 
                 hideModal(completionModal);
@@ -2138,55 +1756,6 @@
             } catch (error) {
                 console.error('업무 완료 실패:', error);
             }
-        }
-
-        function showEarlyCompletionPraise() {
-            const teacherName = currentTeacher ? currentTeacher.name : '';
-            const praiseCombos = [
-                {
-                    title: "🌟 숨은 실력자 발견!",
-                    message: `"Unsung Greatness!" ${teacherName} 선생님의 부지런함이 빛을 발할 날이 분명 올 겁니다.`
-                },
-                {
-                    title: "💪 꾸준함의 힘!",
-                    message: `"Everyday Hustle" 재촉하지 않아도, 빠르게 끝을 내는 습관이 ${teacherName} 선생님을 대표하는 특징이 되어가고 있네요!`
-                },
-                {
-                    title: "⏰ 시간 관리의 달인!",
-                    message: `마감일보다 일찍 완료하신 덕분에 학생들과 더 많은 시간을 보낼 수 있겠어요! ${teacherName} 선생님의 시간 관리 능력이 정말 훌륭합니다.`
-                },
-                {
-                    title: "🎯 완벽한 준비!",
-                    message: `미리 끝내는 습관 덕분에 ${teacherName} 선생님만의 여유로운 수업 준비가 가능하겠네요. 학생들이 더 좋은 수업을 받을 수 있을 거예요!`
-                },
-                {
-                    title: "😌 여유로운 마음!",
-                    message: `일정보다 빠른 완료로 ${teacherName} 선생님의 업무 스트레스가 한층 줄어들 것 같아요. 이런 페이스라면 더 창의적인 교육도 시도해볼 수 있겠어요!`
-                },
-                {
-                    title: "🚀 효율성 극대화!",
-                    message: `${teacherName} 선생님의 효율적인 업무 처리 덕분에 예상보다 빨리 끝났네요! 이렇게 절약된 시간으로 개인 발전에도 투자하실 수 있겠어요.`
-                },
-                {
-                    title: "✨ 완성도 UP!",
-                    message: `마감 전에 미리 완료하니 검토할 시간도 충분하고, 더 완성도 높은 결과물을 만들 수 있겠어요! ${teacherName} 선생님의 계획성이 돋보입니다.`
-                },
-                {
-                    title: "🎪 지속가능한 페이스!",
-                    message: `${teacherName} 선생님의 이런 속도라면 학기 말까지 여유롭게 모든 업무를 소화하실 수 있을 거예요. 정말 든든한 교육 파트네요!`
-                }
-            ];
-            
-            const randomCombo = praiseCombos[Math.floor(Math.random() * praiseCombos.length)];
-            celebrationMessage.innerHTML = `
-                <div style="font-size: 1.2rem; margin-bottom: 1rem;">${randomCombo.title}</div>
-                <div style="font-size: 1rem; line-height: 1.5;">${randomCombo.message}</div>
-            `;
-            showModal(celebrationModal);
-            
-            setTimeout(() => {
-                hideModal(celebrationModal);
-            }, 4000); // 조금 더 오래 표시 (4초)
         }
 
     // 업무 삭제
@@ -2479,140 +2048,6 @@
                 } else {
                     console.log(`URL 파라미터 '${teacherParam}'에 해당하는 선생님을 찾을 수 없음`);
                 }
-            }
-        }
-
-        // 완료된 업무 전체 삭제 기능
-        function showClearDoneModal() {
-            if (!currentTeacher) {
-                alert('선생님을 먼저 선택해주세요.');
-                return;
-            }
-
-            // 현재 완료된 업무 개수 계산
-            const doneTasks = window.currentTasks ? window.currentTasks.filter(task => task.status === 'done') : [];
-            
-            if (doneTasks.length === 0) {
-                alert('완료된 업무가 없습니다.');
-                return;
-            }
-
-            doneTaskCount.textContent = doneTasks.length;
-            showModal(clearDoneModal);
-        }
-
-        async function confirmClearAllDoneTasks() {
-            if (!currentTeacher) return;
-
-            try {
-                // 현재 선생님의 완료된 업무들 찾기
-                const tasksQuery = query(
-                    collection(db, 'tasks'),
-                    where('academyId', '==', currentUser.uid),
-                    where('teacherId', '==', currentTeacher.id),
-                    where('status', '==', 'done')
-                );
-                
-                const querySnapshot = await getDocs(tasksQuery);
-                const deletePromises = querySnapshot.docs.map(taskDoc => deleteDoc(taskDoc.ref));
-                
-                await Promise.all(deletePromises);
-                
-                hideModal(clearDoneModal);
-                
-                // 성공 메시지
-                const deletedCount = querySnapshot.docs.length;
-                if (deletedCount > 0) {
-                    showClearDoneSuccess(deletedCount);
-                }
-            } catch (error) {
-                console.error('완료된 업무 전체 삭제 실패:', error);
-                alert('삭제에 실패했습니다.');
-            }
-        }
-
-        function showClearDoneSuccess(count) {
-            celebrationMessage.innerHTML = `
-                <div style="font-size: 1.2rem; margin-bottom: 1rem;">✨ 정리 완료!</div>
-                <div style="font-size: 1rem; line-height: 1.5;">
-                    ${count}개의 완료된 업무가 깔끔하게 정리되었습니다!<br>
-                    새로운 한 주를 시작할 준비가 되었네요! 🚀
-                </div>
-            `;
-            showModal(celebrationModal);
-            
-            setTimeout(() => {
-                hideModal(celebrationModal);
-            }, 3000);
-        }
-
-        // 업무 수정
-        window.editTask = function(taskId) {
-            const task = window.currentTasks?.find(t => t.id === taskId);
-            if (!task) {
-                alert('업무를 찾을 수 없습니다.');
-                return;
-            }
-
-            taskToEdit = taskId;
-            
-            // 모달 폼에 기존 값들 채우기
-            editTaskContentInput.value = task.content || '';
-            editEstimatedTimeInput.value = task.estimatedTime || '';
-            editDueDateInput.value = task.dueDate || '';
-            editTaskCategorySelect.value = task.category || 'mandatory';
-            editTaskPrioritySelect.value = task.priorityGroup || 'ongoing';
-            editTaskTypeSelect.value = task.taskType || 'deadline';
-            
-            showModal(editTaskModal);
-        }
-
-        async function saveTaskEdit() {
-            if (!taskToEdit) return;
-
-            const content = editTaskContentInput.value.trim();
-            if (!content) {
-                alert('업무 내용을 입력해주세요.');
-                return;
-            }
-
-            try {
-                const updateData = {
-                    content: content,
-                    estimatedTime: editEstimatedTimeInput.value ? parseFloat(editEstimatedTimeInput.value) : null,
-                    dueDate: editDueDateInput.value || null,
-                    category: editTaskCategorySelect.value,
-                    priorityGroup: editTaskPrioritySelect.value,
-                    taskType: editTaskTypeSelect.value,
-                    updatedAt: new Date().toISOString()
-                };
-
-                // 카테고리나 우선순위가 변경된 경우 order 재설정
-                const originalTask = window.currentTasks?.find(t => t.id === taskToEdit);
-                if (originalTask && 
-                    (originalTask.category !== updateData.category || 
-                     originalTask.priorityGroup !== updateData.priorityGroup)) {
-                    
-                    // 새로운 컬럼의 마지막 순서로 설정
-                    const tasksInNewColumn = window.currentTasks?.filter(task => 
-                        task.category === updateData.category && 
-                        task.priorityGroup === updateData.priorityGroup && 
-                        task.status !== 'done' &&
-                        task.id !== taskToEdit
-                    ) || [];
-                    updateData.order = tasksInNewColumn.length;
-                }
-
-                await updateDoc(doc(db, 'tasks', taskToEdit), updateData);
-                
-                hideModal(editTaskModal);
-                taskToEdit = null;
-                
-                // 성공 메시지
-                console.log('업무가 성공적으로 수정되었습니다.');
-            } catch (error) {
-                console.error('업무 수정 실패:', error);
-                alert('업무 수정에 실패했습니다.');
             }
         }
   </script>

@@ -1,99 +1,126 @@
-# 학원 업무 관리 보드 (Academy Task Management Board)
+# 🎓 학원 업무 관리 시스템
 
-Firebase를 사용한 웹 기반 칸반 보드 애플리케이션입니다.
+효율적인 학원 업무 관리를 위한 Kanban 보드 시스템입니다.
 
-## 🚀 해결된 문제점들
+## 🌟 주요 기능
 
-### 1. 인증 문제 해결
-- **문제**: 사용자 인증 로직이 없어서 "로그인이 필요합니다" 오류 발생
-- **해결**: 익명 인증(`signInAnonymously`) 추가
+- **Google 로그인** - 안전한 사용자 인증
+- **선생님별 보드 관리** - 각 선생님마다 독립적인 업무 보드
+- **업무 분류 시스템** - Mandatory, Low-hanging Fruit, Deep Infrastructure, Innovation
+- **시간 추적** - 예상 시간 vs 실제 소요 시간 비교
+- **타임라인 시각화** - 75일 달력으로 업무 일정 한눈에 확인
+- **드래그 앤 드롭** - 직관적인 업무 상태 변경
+- **반응형 디자인** - 노션 임베드 환경까지 최적화
 
-### 2. Firestore 경로 문제 해결
-- **문제**: 보안 규칙과 실제 코드의 경로 불일치
-- **해결**: 경로를 `users/{userId}/tasks`로 통일
+## 🚀 배포된 사이트
 
-### 3. 에러 처리 개선
-- **문제**: Firebase 작업 실패 시 적절한 에러 메시지 없음
-- **해결**: 모든 Firebase 작업에 try-catch 블록과 콘솔 로깅 추가
+### 🔴 메인 사이트 (프로덕션)
+- **URL**: https://wiseup-9542e.web.app
+- **용도**: 실제 운영 환경
+- **업데이트**: 안정된 기능만 배포
 
-## 📋 필수 Firebase 설정
+### 🟡 테스트 사이트
+- **URL**: https://wiseup-9542e--test-4stfydra.web.app
+- **용도**: 새로운 기능 개발 및 테스트
+- **만료**: 30일 후 자동 삭제
 
-### 1. Firebase Authentication 설정
-Firebase 콘솔에서 다음을 활성화해야 합니다:
-1. **Authentication** > **Sign-in method** > **익명** 활성화
+## 📦 배포 방법
 
-### 2. Firestore 보안 규칙 업데이트
-Firebase 콘솔의 **Firestore Database** > **규칙**에서 다음 규칙을 적용:
+### 1. 기본 Firebase CLI 명령어
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // 사용자별 업무 데이터 접근 규칙
-    match /users/{userId}/tasks/{taskId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // 사용자별 컬렉션 접근 규칙
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-## 🛠️ 배포 및 테스트
-
-### 1. 배포
 ```bash
-firebase deploy
+# 메인 사이트 배포
+firebase deploy --only hosting
+
+# 테스트 채널 배포
+firebase hosting:channel:deploy test --expires 30d
+
+# 호스팅 채널 목록 확인
+firebase hosting:channel:list
 ```
 
-### 2. 샘플 데이터 추가
-1. `https://your-project.web.app/add-sample-data.html` 접속
-2. "샘플 업무 데이터 추가" 버튼 클릭
-3. 메인 앱에서 데이터 확인
+### 2. 편리한 배포 스크립트 사용
 
-### 3. 디버깅
-브라우저 개발자 도구의 콘솔에서 다음 로그들을 확인할 수 있습니다:
-- 익명 로그인 성공/실패
-- Firestore 경로 및 로드된 문서 수
-- 업무 추가/수정/삭제 작업 결과
+```bash
+# 사용법 확인
+node deploy.js
 
-## 📁 프로젝트 구조
+# 메인 사이트에 배포
+node deploy.js live
 
-```
-public/
-├── index.html              # 메인 애플리케이션
-├── add-sample-data.html    # 테스트 데이터 추가 도구
-└── ...
-
-firestore-rules.txt         # Firestore 보안 규칙
-README.md                   # 이 파일
+# 테스트 환경에 배포
+node deploy.js test
 ```
 
-## 🎯 주요 기능
+## 🛠️ 개발 환경 설정
 
-- ✅ 익명 인증을 통한 자동 로그인
-- ✅ 업무 추가/수정/삭제
-- ✅ 드래그 앤 드롭으로 업무 상태 변경
-- ✅ 마감일 관리 및 경과 표시
-- ✅ 반응형 디자인
-- ✅ 실시간 데이터 동기화
+### 1. 프로젝트 클론
+```bash
+git clone [repository-url]
+cd my-academy-board-mvp
+```
 
-## 🔧 문제 해결
+### 2. Firebase CLI 설치
+```bash
+npm install -g firebase-tools
+```
 
-### "사용자 인증 정보가 없어 데이터를 로드할 수 없습니다" 오류
-1. Firebase Authentication에서 익명 인증이 활성화되어 있는지 확인
-2. 브라우저 콘솔에서 인증 로그 확인
-3. Firestore 보안 규칙이 올바르게 설정되어 있는지 확인
+### 3. Firebase 로그인
+```bash
+firebase login
+```
 
-### 업무 데이터가 표시되지 않는 경우
-1. `add-sample-data.html`을 사용하여 테스트 데이터 추가
-2. 브라우저 콘솔에서 "로드된 문서 수" 확인
-3. Firestore 콘솔에서 실제 데이터 존재 여부 확인
+### 4. 프로젝트 설정 확인
+```bash
+firebase projects:list
+firebase use wiseup-9542e
+```
 
-### 업무 추가가 안 되는 경우
-1. 모든 필수 필드(업무 내용, 카테고리, 그룹)가 입력되었는지 확인
-2. 브라우저 콘솔에서 에러 메시지 확인
-3. Firestore 보안 규칙 확인 
+## 🏗️ 프로젝트 구조
+
+```
+my-academy-board-mvp/
+├── public/
+│   └── index.html          # 메인 애플리케이션
+├── firebase.json           # Firebase 호스팅 설정
+├── .firebaserc            # Firebase 프로젝트 설정
+├── firestore-rules.txt    # Firestore 보안 규칙
+├── deploy.js              # 배포 스크립트
+└── README.md              # 이 파일
+```
+
+## 🔧 기술 스택
+
+- **Frontend**: HTML, CSS, JavaScript (Vanilla)
+- **Styling**: Tailwind CSS
+- **Backend**: Firebase (Firestore, Authentication, Hosting)
+- **Icons**: Emoji 기반 직관적 UI
+
+## 📋 업무 분류 체계
+
+### 🔴 Mandatory (필수)
+반드시 해야 하는 일, 안했을 때 피해가 있어 미루지 말고 빠르게 처리할 일
+- 예: 매일 시험/수업 준비, 출결확인 후 부모님께 메시지 보내기
+
+### 🟡 Low-hanging Fruit (성과 내기 쉬운 일)
+낮게 맺힌 열매. 쉽고 빠르게 처리할 수 있지만 리턴은 분명한 업무들
+- 예: 나머지 학습시킨 후 학부모 보고, 데일리 피드백 주기
+
+### 🟢 Deep Infrastructure Building (구조 효율화)
+만드는 데 시간이 좀 들어도 장기적 관점에서 구조를 바꾸어 반영구적 효율 개선이 되는 일들
+- 예: 교재화 후 프린트 업무 없애기, LLM 활용하여 피드백 자동화
+
+### 🟣 Innovation (혁신)
+리스크가 있지만, 비전 성취를 위해 수행해볼 수 있는 새로운 시도와 개선들
+- 예: 수업 시스템 변경, 새로운 교육 방법 연구, 학원 디지털 트랜스퍼
+
+## 🎯 우선순위
+
+```
+🔴 Mandatory > 🟡 Low-hanging Fruit > 🟢 Deep Infrastructure > 🟣 Innovation
+🔥 Ongoing > ⭐ Nice to have
+```
+
+## 📞 문의
+
+프로젝트 관련 문의사항이 있으시면 언제든 연락해주세요! 
