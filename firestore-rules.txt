@@ -11,6 +11,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // 일일 계획 데이터 접근 규칙
+    match /dailyPlanning/{planId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // 사용자별 업무 데이터 접근 규칙
     match /users/{userId}/tasks/{taskId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
