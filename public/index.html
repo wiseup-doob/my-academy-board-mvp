@@ -1138,6 +1138,7 @@
         let todaysFocusTasks = [];
         // 전역 변수 추가
         let workStartTime = null;
+        let taskUnsubscribe = null; // Firebase 업무 리스너 해제 함수
 
         // DOM 요소들
         const loginScreen = document.getElementById('login-screen');
@@ -1826,6 +1827,13 @@
         async function loadTeacherTasks() {
             if (!currentTeacher) return;
             
+            // 이전 리스너가 있으면 해제
+            if (taskUnsubscribe) {
+                console.log(`이전 선생님 업무 리스너 해제`);
+                taskUnsubscribe();
+                taskUnsubscribe = null;
+            }
+            
             try {
                 const tasksQuery = query(
                     collection(db, 'tasks'),
@@ -1833,9 +1841,13 @@
                     where('teacherId', '==', currentTeacher.id)
                 );
                 
-                onSnapshot(tasksQuery, (snapshot) => {
+                // 새로운 리스너 등록하고 해제 함수 저장
+                taskUnsubscribe = onSnapshot(tasksQuery, (snapshot) => {
+                    console.log(`${currentTeacher.name} 선생님 업무 로드: ${snapshot.docs.length}개`);
                     const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderTasks(tasks);
+                }, (error) => {
+                    console.error('업무 로드 중 오류:', error);
                 });
             } catch (error) {
                 console.error('업무 로드 실패:', error);
@@ -2320,7 +2332,7 @@
                 },
                 {
                     title: "💪 꾸준함의 힘!",
-                    message: `"Everyday Hustle" 재촉하지 않아도, 빠르게 끝을 내는 습관이 ${teacherName} 선생님을 대표하는 특징이 되어가고 있네요!`
+                    message: `"Everyday Hustle" 재촉하지 않아도, 빠르게 끝내는 습관이 ${teacherName} 선생님을 대표하는 특징이 되어가고 있네요!`
                 },
                 {
                     title: "⏰ 시간 관리의 달인!",
@@ -2332,7 +2344,7 @@
                 },
                 {
                     title: "😌 여유로운 마음!",
-                    message: `일정보다 빠른 완료로 ${teacherName} 선생님의 업무 스트레스가 한층 줄어들 것 같아요. 이런 페이스라면 더 창의적인 교육도 시도해볼 수 있겠어요!`
+                    message: `일정보다 빨리 완료로 ${teacherName} 선생님의 업무 스트레스가 한층 줄어들 것 같아요. 이런 페이스라면 더 창의적인 교육도 시도해볼 수 있겠어요!`
                 },
                 {
                     title: "🚀 효율성 극대화!",
@@ -2998,14 +3010,15 @@
             
             // 새로 추가된 업무들도 포함 (임시로 표시용)
             const newTasksForFocus = [];
-            document.querySelectorAll('.new-task-row').forEach(row => {
+            document.querySelectorAll('.new-task-row').forEach((row, index) => {
                 const content = row.querySelector('.new-task-content').value.trim();
                 if (content) {
                     newTasksForFocus.push({
-                        id: 'new-' + Date.now() + Math.random(), // 임시 ID
+                        id: `new-task-${index}`, // 임시 ID를 배열 인덱스 기반으로 변경
                         content: content,
                         estimatedTime: row.querySelector('.new-task-time').value ? parseFloat(row.querySelector('.new-task-time').value) : null,
-                        isNewTask: true
+                        isNewTask: true,
+                        newTaskIndex: index // 새 업무 인덱스 추가
                     });
                 }
             });
@@ -3018,8 +3031,9 @@
                 allTasks.forEach(task => {
                     const taskId = task.isNewTask ? task.id : task.id;
                     const taskLabel = task.isNewTask ? ' (새 업무)' : '';
+                    const newTaskIndex = task.isNewTask ? task.newTaskIndex : '';
                     html += `<div class="focus-task-item flex items-center gap-2 mb-2 p-2 bg-white rounded border">
-                        <input type="checkbox" class="focus-checkbox" data-task-id="${taskId}" data-is-new="${task.isNewTask || false}" onchange="handleFocusSelection(this)">
+                        <input type="checkbox" class="focus-checkbox" data-task-id="${taskId}" data-is-new="${task.isNewTask || false}" data-new-task-index="${newTaskIndex}" onchange="handleFocusSelection(this)">
                         <span class="flex-1">${task.content}${taskLabel}</span>
                         <span class="text-sm text-gray-500">${task.estimatedTime ? task.estimatedTime + '시간' : ''}</span>
                     </div>`;
@@ -3135,15 +3149,31 @@
                 const newTaskIds = [];
                 for (let i = 0; i < newTasks.length; i++) {
                     const taskData = newTasks[i];
-                    const existingTasks = window.currentTasks?.filter(task => 
-                        task.category === taskData.category && 
-                        task.priorityGroup === taskData.priorityGroup && 
-                        task.status !== 'done'
-                    ) || [];
-                    taskData.order = existingTasks.length + i;
+                    
+                    // 새 업무는 우선순위를 높게 설정 (0부터 시작)
+                    taskData.order = i;
                     
                     const docRef = await addDoc(collection(db, 'tasks'), taskData);
                     newTaskIds.push(docRef.id);
+                }
+
+                // 3-2. 기존 업무들의 order를 새 업무 개수만큼 뒤로 밀기
+                if (newTasks.length > 0) {
+                    console.log(`기존 업무들의 order를 ${newTasks.length}만큼 뒤로 밀기 시작...`);
+                    const allExistingTasks = window.currentTasks?.filter(task => task.status !== 'done') || [];
+                    
+                    for (const task of allExistingTasks) {
+                        try {
+                            await updateDoc(doc(db, 'tasks', task.id), {
+                                order: task.order + newTasks.length,
+                                updatedAt: new Date().toISOString()
+                            });
+                            console.log(`업무 ${task.id}의 order를 ${task.order}에서 ${task.order + newTasks.length}로 변경`);
+                        } catch (error) {
+                            console.error(`업무 ${task.id} order 업데이트 실패:`, error);
+                        }
+                    }
+                    console.log('기존 업무 order 업데이트 완료');
                 }
 
                 // 4. 모든 기존 업무의 포커스 설정 클리어
@@ -3160,94 +3190,68 @@
                 });
                 await Promise.all(clearFocusPromises);
 
-                // 5. 포커스 업무 설정 - 기존 업무만 (새 업무는 별도 처리)
-                const existingFocusTasks = [];
-                const newFocusIndexes = [];
-                
+                // 5. 포커스 업무 설정 - 체크 순서대로 우선순위 설정 (기존/새 업무 구분 없이)
                 console.log('선택된 포커스 업무들:', checkedBoxes.length, '개');
-                checkedBoxes.forEach(cb => {
-                    console.log('포커스 체크박스:', {
+                
+                // 체크된 모든 업무들을 클릭 순서대로 처리
+                for (let i = 0; i < checkedBoxes.length; i++) {
+                    const cb = checkedBoxes[i];
+                    const priority = i + 1; // 1, 2, 3... 순서로 우선순위 설정
+                    
+                    console.log(`포커스 우선순위 ${priority}: ${cb.dataset.isNew === 'false' ? '기존' : '새'} 업무`, {
                         taskId: cb.dataset.taskId,
                         isNew: cb.dataset.isNew,
+                        newTaskIndex: cb.dataset.newTaskIndex,
                         clickOrder: cb.getAttribute('data-click-order')
                     });
-                });
-                
-                // 이미 정렬된 checkedBoxes 사용
-                checkedBoxes.forEach((cb, index) => {
+                    
                     if (cb.dataset.isNew === 'false') {
-                        existingFocusTasks.push(cb.dataset.taskId);
-                        console.log('기존 업무 포커스 추가:', cb.dataset.taskId);
-                    } else {
-                        // 새 업무 중 포커스로 선택된 것들의 인덱스 저장
-                        const tempId = cb.dataset.taskId;
-                        const newTaskIndex = Array.from(document.querySelectorAll('.new-task-row')).findIndex((row, idx) => {
-                            const content = row.querySelector('.new-task-content').value.trim();
-                            return content && tempId.includes(content.substring(0, 5)); // 임시 매칭
-                        });
-                        if (newTaskIndex !== -1) {
-                            newFocusIndexes.push(newTaskIndex);
-                            console.log('새 업무 포커스 추가:', newTaskIndex);
-                        }
-                    }
-                });
-
-                console.log('기존 업무 포커스 목록:', existingFocusTasks);
-                console.log('새 업무 포커스 인덱스:', newFocusIndexes);
-
-                // 6. 기존 업무 포커스 설정
-                console.log('기존 업무 포커스 설정 시작...', existingFocusTasks.length, '개');
-                for (let i = 0; i < existingFocusTasks.length; i++) {
-                    const taskId = existingFocusTasks[i];
-                    console.log(`기존 업무 ${taskId}를 ${i + 1}순위로 설정 중...`);
-                    try {
-                        await updateDoc(doc(db, 'tasks', taskId), {
-                            isTodaysFocus: true,
-                            focusPriority: i + 1,
-                            updatedAt: new Date().toISOString()
-                        });
-                        console.log(`기존 업무 ${taskId} 포커스 설정 완료`);
-                    } catch (error) {
-                        console.error(`기존 업무 ${taskId} 포커스 설정 실패:`, error);
-                    }
-                }
-
-                // 7. 새 업무 포커스 설정
-                console.log('새 업무 포커스 설정 시작...', newFocusIndexes.length, '개');
-                for (let i = 0; i < newFocusIndexes.length; i++) {
-                    const taskIndex = newFocusIndexes[i];
-                    if (newTaskIds[taskIndex]) {
-                        const taskId = newTaskIds[taskIndex];
-                        const priority = existingFocusTasks.length + i + 1;
-                        console.log(`새 업무 ${taskId}를 ${priority}순위로 설정 중...`);
+                        // 기존 업무 포커스 설정
+                        const taskId = cb.dataset.taskId;
                         try {
                             await updateDoc(doc(db, 'tasks', taskId), {
                                 isTodaysFocus: true,
                                 focusPriority: priority,
                                 updatedAt: new Date().toISOString()
                             });
-                            console.log(`새 업무 ${taskId} 포커스 설정 완료`);
+                            console.log(`기존 업무 ${taskId} → ${priority}순위 포커스 설정 완료`);
                         } catch (error) {
-                            console.error(`새 업무 ${taskId} 포커스 설정 실패:`, error);
+                            console.error(`기존 업무 ${taskId} 포커스 설정 실패:`, error);
+                        }
+                    } else {
+                        // 새 업무 포커스 설정
+                        const newTaskIndex = parseInt(cb.dataset.newTaskIndex);
+                        if (!isNaN(newTaskIndex) && newTaskIds[newTaskIndex]) {
+                            const taskId = newTaskIds[newTaskIndex];
+                            try {
+                                await updateDoc(doc(db, 'tasks', taskId), {
+                                    isTodaysFocus: true,
+                                    focusPriority: priority,
+                                    updatedAt: new Date().toISOString()
+                                });
+                                console.log(`새 업무 ${taskId} → ${priority}순위 포커스 설정 완료`);
+                            } catch (error) {
+                                console.error(`새 업무 ${taskId} 포커스 설정 실패:`, error);
+                            }
                         }
                     }
                 }
 
                 console.log('포커스 업무 설정 완료!');
 
-                // 8. 모달 닫기 및 성공 메시지
+                // 6. 모달 닫기 및 성공 메시지
                 hideModal(dailyPlanningModal);
                 
-                // 9. 일일 계획 완료 상태 저장
+                // 7. 일일 계획 완료 상태 저장
                 await saveDailyPlanningCompletion();
                 
-                // 10. 업무 시작 섹션 숨기기
+                // 8. 업무 시작 섹션 숨기기
                 startWorkSection.style.display = 'none';
                 
-                // 11. 성공 메시지 표시
+                // 9. 성공 메시지 표시
                 showDailyPlanningSuccess(newTasks.length, focusTasks.length);
                 
-                // 12. 데이터 새로고침
+                // 10. 데이터 새로고침
                 await loadTeacherTasks();
 
             } catch (error) {
